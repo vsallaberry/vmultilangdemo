@@ -1,7 +1,7 @@
 
 ## vmultilangdemo
 -----------------
-Multiple language/meta-language demo program .
+Multiple language/meta-language demo program.
 
 * [Overview](#overview)
 * [System Requirments](#systemrequirments)
@@ -15,6 +15,7 @@ Multiple language/meta-language demo program .
 
 NOTE:
 - This is a work in progress, this program is not no fully operational yet.
+- improvements will be done to take care of disabled features
 
 ## System requirements
 - A somewhat capable compiler (gcc/clang), make (GNU,BSD), sh (sh/bash/ksh)
@@ -22,10 +23,15 @@ NOTE:
 - For all Java features: need bison >=3, gcj, gcc, g++.
 
 This is not an exhaustive list but the list of systems on which it has been built:
-- Linux: ubuntu 12.04 3.11.0
+- Linux: ubuntu 12.04 3.11.0 (without bison3 java .yyj)
+  $ make GCJH='gcjh -I.' LIBS='-lstdc++' YACCJAVA=
 - OSX 10.11.6
-- OpenBSD 5.5 except java and bison3
-- FreeBSD 11.1 except java and bison3
+  With bison3: $ make
+  Without    : $ make YACCJAVA=
+- OpenBSD 5.5 except java and flex, bison, bison3
+  $ make YACCJAVA= JAVASRC= YACCSRC= LEXSRC= MACROS='-D_NOJAVA'
+- FreeBSD 11.1 except java, bison, flex, bison3
+  $ make YACCJAVA= JAVASRC= YACCSRC= LEXSRC= MACROS='-D_NOJAVA'
 
 ## Compilation
 Make sure you clone the repository with '--recursive' option.
