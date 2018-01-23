@@ -19,7 +19,8 @@
  * -------------------------------------------------------------------------
  * cni gcj java/c++ interface. allows calls java->c++ and c++->java.
  */
-#ifndef _NOJAVA
+#include "version.h"
+#if BUILD_JAVAOBJ
 #include <iostream>
 #include <java/lang/Object.h>
 #include <gcj/array.h>

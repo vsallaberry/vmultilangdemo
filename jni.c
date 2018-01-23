@@ -19,7 +19,7 @@
  * -------------------------------------------------------------------------
  * jni native method implentation for JMain::nat_main(). NOT USED if cni.
  */
-#ifndef _NOJAVA
+#if BUILD_JAR
 #include <jni.h>
 #include <stdio.h>
 

@@ -20,6 +20,9 @@
  * test c++ api called by c
  */
 #include <iostream>
+
+#include "version.h"
+
 extern "C" int c_call_for_cpp(int a);
 
 extern "C" int cpp_call_for_c(int a) {
@@ -33,9 +36,9 @@ extern "C" int jcni();
 extern "C" int cpp_cni_call_for_c(int a) {
     std::cout << "cpp cni call for c " << a << std::endl;
     //call JCni java cni interface
-#   ifdef _NOJAVA
-    return 0;
-#   else
+#   if BUILD_JAVAOBJ
     return jcni();
+#   else
+    return 0;
 #   endif
 }

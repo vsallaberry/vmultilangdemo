@@ -24,21 +24,17 @@ NOTE:
 
 This is not an exhaustive list but the list of systems on which it has been built:
 - Linux: ubuntu 12.04 3.11.0 (without bison3 java .yyj)
-  $ make GCJH='gcjh -I.' LIBS='-lstdc++' YACCJAVA=
+- Linux: debian
 - OSX 10.11.6
-  With bison3: $ make
-  Without    : $ make YACCJAVA=
 - OpenBSD 5.5 except java and flex, bison, bison3
-  $ make YACCJAVA= JAVASRC= YACCSRC= LEXSRC= MACROS='-D_NOJAVA'
 - FreeBSD 11.1 except java, bison, flex, bison3
-  $ make YACCJAVA= JAVASRC= YACCSRC= LEXSRC= MACROS='-D_NOJAVA'
 
 ## Compilation
 Make sure you clone the repository with '--recursive' option.
     $ git clone --recursive https://github.com/vsallaberry/vmultilangdemo
 
 Just type:
-    $ make
+    $ make # (or 'make -j0' for SMP)
 
 If the Makefile cannot be parsed by 'make', try:
     $ ./make-fallback

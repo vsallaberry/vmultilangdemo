@@ -20,11 +20,11 @@
  * main
  */
 #include <cstdio>
-#ifndef _NOJAVA
-#include <gcj/cni.h>
-#endif
 
 #include "version.h"
+#if BUILD_JAVAOBJ
+# include <gcj/cni.h>
+#endif
 
 extern "C" const char *const* vmultilangdemo_get_source();
 extern "C" int m();
@@ -56,7 +56,7 @@ int main(int argc, const char *const* argv) {
     }
     //m();
     cpp_call_for_c(0);
-#   ifndef _NOJAVA
+#   if BUILD_JAVAOBJ
     fprintf(stdout, "Starting Java...\n");
     JvCreateJavaVM(NULL);
     JvAttachCurrentThread(NULL, NULL);
