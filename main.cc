@@ -32,11 +32,13 @@ extern "C" int cpp_call_for_c(int);
 extern "C" int cpp_cni_call_for_c(int);
 
 int main(int argc, const char *const* argv) {
+
+    fprintf(stdout, "%s (%s v%s built on %s, %s from git-rev %s)\n\n",
+            *argv, BUILD_APPNAME, APP_VERSION, __DATE__, __TIME__, BUILD_GITREV);
+
     fprintf(stdout, "Copyright (C) 2018 Vincent Sallaberry.\n"
                     "This is free software; see the source for copying conditions.  There is NO\n"
                     "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n");
-    fprintf(stdout, "%s (%s v%s built on %s, %s from git-rev %s)\n",
-            *argv, BUILD_APPNAME, APP_VERSION, __DATE__, __TIME__, BUILD_GITREV);
     fprintf(stdout, "  prefix     : %s\n"
                     "  srcpath    : %s\n"
                     "  git_full   : %s\n"
@@ -44,9 +46,17 @@ int main(int argc, const char *const* argv) {
                     "  CXX        : %s\n"
                     "  GCJ        : %s\n"
                     "  CCLD       : %s\n"
-                    "\n",
+                    "  flags      : LEX:%d YACC:%d BISON3:%d JAVAOBJ:%d BIN:%d LIB:%d JAR:%d"
+#                 ifdef BUILD_DEBUG
+                    " DEBUG"
+#                 endif
+#                 ifdef BUILD_TEST
+                    " TEST"
+#                 endif
+                    "\n\n",
                     BUILD_PREFIX, BUILD_SRCPATH, BUILD_FULLGITREV,
-                    BUILD_CC_CMD, BUILD_CXX_CMD, BUILD_GCJ_CMD, BUILD_CCLD_CMD);
+                    BUILD_CC_CMD, BUILD_CXX_CMD, BUILD_GCJ_CMD, BUILD_CCLD_CMD,
+                    BUILD_LEX, BUILD_YACC, BUILD_BISON3, BUILD_JAVAOBJ, BUILD_BIN, BUILD_LIB, BUILD_JAR);
     if (argc > 1) {
 #     ifdef APP_INCLUDE_SOURCE
         for (const char *const* line = vmultilangdemo_get_source(); *line; line++) {

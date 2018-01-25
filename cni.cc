@@ -22,16 +22,9 @@
 #include "version.h"
 #if BUILD_JAVAOBJ
 #include <iostream>
-#include <java/lang/Object.h>
-#include <gcj/array.h>
-// Declare JCni cni interface: should be output of 'gcjh -cni JCni.class'
-extern "Java" class JCni : public ::java::lang::Object {
-  public:
-    JCni();
-    void jcni();
-    static const jint JCNI_VER = 1;
-    static ::java::lang::Class class$;
-};
+
+#include "JCni.hh"
+#include "JMain.hh"
 
 extern "C" int jcni() {
     static JCni *j = new JCni();
@@ -39,17 +32,6 @@ extern "C" int jcni() {
     //delete j;
     return 0;
 }
-
-//Declare JMain cni interfaces: should be output of 'gcjh -cni JMain.class'
-extern "Java" class JMain : public ::java::lang::Object {
-  public:
-    JMain();
-    static void main(JArray < ::java::lang::String * > *);
-    static void jmain();
-    static void nat_main();
-    static const jint JMAIN_VER = 1;
-    static ::java::lang::Class class$;
-};
 
 extern "C" int cpp_call_for_c(int);
 

@@ -31,5 +31,7 @@ JNIEXPORT void JNICALL JMain_nat_1main (JNIEnv * env, jclass clazz) {
     (void)env;
     (void)clazz;
 }
+#else
+extern void unused();
 #endif
 
