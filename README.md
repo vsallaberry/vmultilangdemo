@@ -1,7 +1,6 @@
 
 ## vmultilangdemo
 -----------------
-Multiple language/meta-language demo program.
 
 * [Overview](#overview)
 * [System Requirments](#systemrequirments)
@@ -20,21 +19,22 @@ NOTE:
 ## System requirements
 - A somewhat capable compiler (gcc/clang), make (GNU,BSD), sh (sh/bash/ksh)
   and coreutils (awk,grep,sed,date,touch,head,printf,which,find,test,...)
-- For all Java features: need bison >=3, gcj, gcc, g++.
+- For native java features: need bison >=3, gcj, gcc, g++.
 
 This is not an exhaustive list but the list of systems on which it has been built:
-- Linux: ubuntu 12.04 3.11.0 (without bison3 java .yyj)
-- Linux: debian
-- OSX 10.11.6
-- OpenBSD 5.5 except java and flex, bison, bison3
-- FreeBSD 11.1 except java, bison, flex, bison3
+- Linux slitaz 4 2.6.37 (without flex,yacc,bison3,java)
+- Linux ubuntu 12.04 3.11.0 (without bison3, with 'apt-get install gcj')
+- Linux debian9 (with 'apt-get install gcj-6')
+- OSX 10.11.6  (with gcc/g++/gcj v6 and bison v3)
+- OpenBSD 5.5 except java and bison3.
+- FreeBSD 11.1 except java and bison3.
 
 ## Compilation
 Make sure you clone the repository with '--recursive' option.
     $ git clone --recursive https://github.com/vsallaberry/vmultilangdemo
 
 Just type:
-    $ make # (or 'make -j0' for SMP)
+    $ make # (or 'make -j3' for SMP)
 
 If the Makefile cannot be parsed by 'make', try:
     $ ./make-fallback
@@ -44,6 +44,9 @@ with something like 'make SED=gsed TAR=gnutar' (or ./make-fallback SED=...)
 
 To See how make understood the Makefile, you can type:
     $ make info # ( or ./make-fallback info)
+
+When making without version.h created (not the case for this repo), some old
+bsd make can stop. Just type again '$ make' and it will be fine.
 
 ## Contact
 [vsallaberry@gmail.com]

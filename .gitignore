@@ -1,5 +1,6 @@
 *.a
 *.class
+*.d
 *.o
 *~
 .*.swo
@@ -17,6 +18,7 @@ Y.hh
 Z.hh
 _src_.c
 build.h
+javapkg/PackClass.hh
 parse-test.c
 parse-test.h
 parse-test2.cc
