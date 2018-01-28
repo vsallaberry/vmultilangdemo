@@ -21,12 +21,13 @@
  */
 public class JMain {
     public static final int JMAIN_VER = 1;
-    public static native void nat_main();
+    public static native int nat_main();
     public static void main(String[] args) {
         System.out.println("Hello from java JMain::main");
         nat_main();
     }
-    public static void jmain() {
+    public static int jmain(String[] args) {
         System.out.println("Hello from java JMain::jmain");
+        return nat_main();
     }
 }

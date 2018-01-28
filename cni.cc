@@ -28,18 +28,20 @@
 
 extern "C" int jcni() {
     static JCni *j = new JCni();
-    j->jcni();
+    int ret;
+
+    ret = j->jcni();
     //delete j;
-    return 0;
+    return ret;
 }
 
 extern "C" int cpp_call_for_c(int);
 
 // JMain::nat_main() java native method implementation.
-extern "Java" void JMain::nat_main() {
+extern "Java" jint JMain::nat_main() {
     /*void JMain_nat_1main (void*, void*);
     JMain_nat_1main(NULL, NULL);*/
     std::cout << "hello from cni native JMain::nat_main()" << std::endl;
-    cpp_call_for_c(0); // call c++ utility.
+    return cpp_call_for_c(0); // call c++ utility.
 }
 #endif

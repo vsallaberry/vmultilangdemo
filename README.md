@@ -14,7 +14,6 @@
 
 NOTE:
 - This is a work in progress, this program is not no fully operational yet.
-- improvements will be done to take care of disabled features
 
 ## System requirements
 - A somewhat capable compiler (gcc/clang), make (GNU,BSD), sh (sh/bash/ksh)

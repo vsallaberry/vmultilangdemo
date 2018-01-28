@@ -21,8 +21,8 @@
  */
 public class JCni {
     public static final int JCNI_VER = 1;
-    public void jcni() {
+    public int jcni() {
         System.out.println("Hello from java JCni::jcni");
-        JMain.main(new String[] { "arg0", "arg1" });
+        return JMain.jmain(new String[] { "arg0", "arg1" });
     }
 }
