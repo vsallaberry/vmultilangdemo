@@ -49,6 +49,7 @@
  */
 /* yacc/bison versions have different way to change yy prefix
  * the common way to do it is to use the command line option '-p prefix'
+ * yacc is cool, bison is very, very cool */
 /* %name-prefix = "y0" */
 /* %define "api.prefix" "y0" */
 /* %error-verbose - not supported on all yacc */
@@ -59,7 +60,7 @@
 
 /* Tokens definitions */
 %token NUMBER
-/*%token <number> NUMBER "number"*/
+/*%token <number> NUMBER "number" - bsd yacc does not like it */
 %token PLUS     "+"
 %token MINUS    "-"
 %token TIMES    "*"
