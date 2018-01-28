@@ -40,9 +40,11 @@ extern "C" int cpp_call_for_c(int);
 extern "C" int cpp_cni_call_for_c(int);
 
 int main(int argc, const char *const* argv) {
+#   if BUILD_LEX && BUILD_YACC
     const char *    parsestr;
     double          dresult, dexpected;
     long            lresult, lexpected;
+#   endif
     unsigned int    nerrors = 0;
     int             ret;
 
