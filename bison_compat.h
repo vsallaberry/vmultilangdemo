@@ -20,7 +20,8 @@
  * Header for lex-flex/yacc-bison compatibility.
  *
  * This adds support for '%locations', '%error-verbose', '%parse-param' not supported
- * by all yacc. For '%error-verbose', verbose done if yacc supports YY_VERBOSE=1.
+ * by all yacc. For '%error-verbose', verbose done if yacc supports YY_VERBOSE=1, for
+ * '%locations' they are only based on scanner (current token).
  *
  * - if the bison/yacc generated header is included in the same file as this file,
  *   this file MUST always be included AFTER bison/yacc generated header.
@@ -29,7 +30,6 @@
  *   + '#define BCOMPAT_YYPREFIX <yyprefix>'
  *   + '#define BCOMPAT_NO_VYYERROR if you don't want to use the default
  *      yyerror(const char*) and vyyerror(const char *, ...) methods.
- *   + ''
  *
  * - At head of .l* file, include this file, with the same prerequites as for
  *   .y* file.
