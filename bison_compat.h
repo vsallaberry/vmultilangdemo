@@ -51,8 +51,13 @@
 #ifndef BISON_COMPAT_H
 # define BISON_COMPAT_H
 
-# define BCOMPAT_IS_YACC    defined(YYBISON) || defined(YYBYYACC) || defined(YYEMPTY)
-# define BCOMPAT_IS_LEX     defined(FLEX_SCANNER)
+# if defined(FLEX_SCANNER)
+#  define BCOMPAT_IS_LEX
+#  undef BCOMPAT_IS_YACC
+# elif defined(YYBISON) || defined(YYBYYACC) || defined(YYEMPTY)
+#   define BCOMPAT_IS_YACC
+#   undef BCOMPAT_IS_LEX
+# endif /* ifdef LEX,YACC, OTHER */
 
 #  ifdef __cplusplus
 #   define BCOMPAT_EXPORT extern "C"
@@ -60,7 +65,7 @@
 #   define BCOMPAT_EXPORT
 #  endif /* ifdef __cplusplus */
 
-# if BCOMPAT_IS_YACC || BCOMPAT_IS_LEX
+# if defined(BCOMPAT_IS_YACC) || defined(BCOMPAT_IS_LEX)
 /********************************************************
  * DECLARATIONS for YACC OR LEX GENERATED SOURCE.
  ********************************************************/
@@ -104,9 +109,9 @@ int yyerror(const char *msg);
 int yyparse();
 BCOMPAT_DECL_YYPARSE_WRAPPER;
 
-# endif /* ifdef LEX || YACC */
+# endif /* ifdef BCOMPAT_IS_LEX || BCOMPAT_IS_YACC */
 
-# if BCOMPAT_IS_YACC
+# if defined(BCOMPAT_IS_YACC)
 /********************************************************
  * DECLARATIONS for YACC GENERATED SOURCE.
  ********************************************************/
@@ -164,7 +169,7 @@ BCOMPAT_DECL_YYPARSE_WRAPPER {
     return yyparse();
 }
 
-# elif BCOMPAT_IS_LEX
+# elif defined(BCOMPAT_IS_LEX)
 /********************************************************
  * DECLARATIONS for LEX GENERATED SOURCE.
  ********************************************************/
@@ -243,7 +248,7 @@ BCOMPAT_EXPORT int BCOMPAT_YYPARSESTR(const char *str, void * presult) {
 /********************************************************
  * END OF DECLARATIONS.
  ********************************************************/
-# endif /* ifdef YACC&LEX,YACC,LEX,else */
+# endif /* ifdef BCOMPAT_IS_YACC,BCOMPAT_IS_LEX,else */
 #undef BCOMPAT_IS_LEX
 #undef BCOMPAT_IS_YACC
 #endif /* ifndef BISON_COMPAT_H */
