@@ -51,7 +51,7 @@
 /* Tokens definitions */
 %token NUMBER
 /*%token <number> NUMBER "number"*/
-%token COS      "cos"
+%token COS
 %token LPAREN   "("
 %token RPAREN   ")"
 

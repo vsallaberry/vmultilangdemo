@@ -21,6 +21,7 @@
  */
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 #include "version.h"
 #if BUILD_JAVAOBJ
