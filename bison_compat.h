@@ -20,7 +20,7 @@
  * Header for lex-flex/yacc-bison compatibility.
  *
  * This adds support for '%locations', '%error-verbose', '%parse-param'
- * not supported by all yacc.
+ * not supported by all yacc. For '%error-verbose', verbose done if yacc supports it.
  *
  * - if the bison/yacc generated header is included in the same file as this file,
  *   this file MUST always be included AFTER bison/yacc generated header.
@@ -79,8 +79,8 @@
 #  define BCOMPAT_YYLOCATIONS
 #  define BCOMPAT_YYPARSE_PARAM
 
-#  define BCOMPAT_PREFIX(p,s) p##s
-#  define BCOMPAT_EXPAND(p,s) BCOMPAT_PREFIX(p,s)
+#  define BCOMPAT_ADD_PREFIX(p,s) p##s
+#  define BCOMPAT_EXPAND(p,s) BCOMPAT_ADD_PREFIX(p,s)
 
 #  ifdef BCOMPAT_YYLOCATIONS
 typedef struct {
@@ -100,13 +100,15 @@ typedef struct {
 BCOMPAT_DECL_V_YYERROR;
 #  endif /* ifndef BCOMPAT_NO_VYYERROR */
 
-/* create internal wrap_<prefix>parse() */
+/* declare internal wrap_<prefix>parse(), <prefix>lex(),<prefix>error,<prefix>parse */
 #  define BCOMPAT_YYPARSE_WRAPPER       BCOMPAT_EXPAND(wrap_, BCOMPAT_EXPAND(BCOMPAT_YYPREFIX,parse))
 #  define BCOMPAT_DECL_YYPARSE_WRAPPER  int BCOMPAT_YYPARSE_WRAPPER(my_yylloc_t *p_yylloc, void * p_yyresult)
-
-int yylex();
-int yyerror(const char *msg);
-int yyparse();
+#  define BCOMPAT_YYPARSE               BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parse)
+#  define BCOMPAT_YYLEX                 BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, lex)
+#  define BCOMPAT_YYERROR               BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, error)
+int BCOMPAT_YYLEX();
+int BCOMPAT_YYERROR(const char *msg);
+int BCOMPAT_YYPARSE();
 BCOMPAT_DECL_YYPARSE_WRAPPER;
 
 # endif /* ifdef BCOMPAT_IS_LEX || BCOMPAT_IS_YACC */
@@ -166,7 +168,7 @@ int	BCOMPAT_YYERROR_DEFAULT(const char *msg) {
 BCOMPAT_DECL_YYPARSE_WRAPPER {
     my_yylloc = p_yylloc;
     my_yyresult = p_yyresult;
-    return yyparse();
+    return BCOMPAT_YYPARSE();
 }
 
 # elif defined(BCOMPAT_IS_LEX)
@@ -182,6 +184,7 @@ BCOMPAT_DECL_YYPARSE_WRAPPER {
 #  define BCOMPAT_YYPARSESTR    BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsestr)
 #  define BCOMPAT_YYSCANSTRING  BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, _scan_string)
 #  define BCOMPAT_YYIN          BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, in)
+#  define BCOMPAT_YYLLENG       BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, leng)
 
 /* yylloc location structure */
 //static my_yylloc_t my_yylloc = { .first_column = INT_MAX, .first_line = 0, .last_column=0, .last_line=0 };
@@ -191,7 +194,7 @@ static my_yylloc_t my_yylloc = { INT_MAX, INT_MAX, INT_MAX, INT_MAX, NULL };
 #  ifdef BCOMPAT_YYLOCATIONS
 #   define YY_USER_ACTION  do { \
         my_yylloc.first_column = my_yylloc.last_column; \
-        my_yylloc.last_column+=yyleng; \
+        my_yylloc.last_column+=BCOMPAT_YYLLENG; \
     } while(0);
 #  endif
 
