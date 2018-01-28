@@ -19,8 +19,8 @@
  * -------------------------------------------------------------------------
  * Header for lex-flex/yacc-bison compatibility.
  *
- * This adds support for '%locations', '%error-verbose', '%parse-param'
- * not supported by all yacc. For '%error-verbose', verbose done if yacc supports it.
+ * This adds support for '%locations', '%error-verbose', '%parse-param' not supported
+ * by all yacc. For '%error-verbose', verbose done if yacc supports YY_VERBOSE=1.
  *
  * - if the bison/yacc generated header is included in the same file as this file,
  *   this file MUST always be included AFTER bison/yacc generated header.
@@ -187,7 +187,6 @@ BCOMPAT_DECL_YYPARSE_WRAPPER {
 #  define BCOMPAT_YYLLENG       BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, leng)
 
 /* yylloc location structure */
-//static my_yylloc_t my_yylloc = { .first_column = INT_MAX, .first_line = 0, .last_column=0, .last_line=0 };
 static my_yylloc_t my_yylloc = { INT_MAX, INT_MAX, INT_MAX, INT_MAX, NULL };
 
 /* Code run each time a pattern is matched. */
@@ -246,7 +245,6 @@ BCOMPAT_EXPORT int BCOMPAT_YYPARSESTR(const char *str, void * presult) {
 
 #  define BCOMPAT_PARSER_DECL(prefix)   BCOMPAT_EXPORT int prefix##parsefile(const char *filename, void * presult); \
                                         BCOMPAT_EXPORT int prefix##parsestr(const char *str, void * presult)
-//#  define BCOMPAT_PARSESTR_DECL(prefix)     BCOMPAT_EXPORT int prefix##parsestr(const char *str, void * presult)
 
 /********************************************************
  * END OF DECLARATIONS.
