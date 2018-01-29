@@ -105,28 +105,28 @@ int main(int argc, const char *const* argv) {
     fprintf(stdout, "\n** Running yacc/lex samples\n");
 
     /* parse-test: stdin */
-    fprintf(stdout, "1.1) enter simple arithmetic ('1', '2*(-1+3)', ...).\n> ");
+    fprintf(stdout, "\n1.1) enter simple arithmetic ('1', '2*(-1+3)', ...).\n> ");
     if ((ret = y0parsefile(NULL, &lresult)) != 0) {
         nerrors++;
         fprintf(stdout, "error, y0process(): %d\n", ret);
     } else fprintf(stdout, "  = %ld\n", lresult);
 
     /* parse-test: stdin */
-    fprintf(stdout, "1.2) enter simple arithmetic ('1', '2*(-1+3)', ...).\n> ");
+    fprintf(stdout, "\n1.2) enter simple arithmetic ('1', '2*(-1+3)', ...).\n> ");
     if ((ret = y0parsefile(NULL, &lresult)) != 0) {
         nerrors++;
         fprintf(stdout, "error, y0process(): %d\n", ret);
     } else fprintf(stdout, "  = %ld\n", lresult);
 
     /* parse-test2: stdin */
-    fprintf(stdout, "2.1) enter `exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0)).\n> ");
+    fprintf(stdout, "\n2.1) enter `exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0)).\n> ");
     if ((ret = y1parsefile(NULL, &dresult)) != 0) {
         nerrors++;
         fprintf(stdout, "error y1process(): %d\n", ret);
     } else fprintf(stdout, "  = %lf\n", dresult);
 
     /* parse-test2: stdin */
-    fprintf(stdout, "2.2) enter `exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0)).\n> ");
+    fprintf(stdout, "\n2.2) enter `exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0)).\n> ");
     if ((ret = y1parsefile(NULL, &dresult)) != 0) {
         nerrors++;
         fprintf(stdout, "error y1process(): %d\n", ret);
@@ -135,7 +135,7 @@ int main(int argc, const char *const* argv) {
     /* parse-test: buffer */
     parsestr = " 2  *(-1+3  )";
     lexpected = 4;
-    fprintf(stdout, "1.3) simple arithmetic ('1', '2*(-1+3)', ...).\n> %s\n", parsestr);
+    fprintf(stdout, "\n1.3) simple arithmetic ('1', '2*(-1+3)', ...).\n> %s\n", parsestr);
     if ((ret = y0parsestr(parsestr, &lresult)) != 0) {
         nerrors++;
         fprintf(stdout, "error, y0process(): %d\n", ret);
@@ -147,7 +147,7 @@ int main(int argc, const char *const* argv) {
     /* parse-test2: buffer */
     parsestr = " cos( 0,0) ";
     dexpected = 1.0;
-    fprintf(stdout, "2.3) exp: = float | (exp) | cos(exp); (eg: '1,0', 'cos(0.0)).\n> %s\n", parsestr);
+    fprintf(stdout, "\n2.3) exp: = float | (exp) | cos(exp); (eg: '1,0', 'cos(0.0)).\n> %s\n", parsestr);
     if ((ret = y1parsestr(parsestr, &dresult)) != 0) {
         nerrors++;
         fprintf(stdout, "error, y1process(): %d\n", ret);
@@ -159,7 +159,7 @@ int main(int argc, const char *const* argv) {
     /* parse-test2: buffer */
     parsestr = " 3.14 ";
     dexpected = 3.14;
-    fprintf(stdout, "2.3) exp: = float | (exp) | cos(exp); (eg: '1,0', 'cos(0.0)).\n> %s\n", parsestr);
+    fprintf(stdout, "\n2.3) exp: = float | (exp) | cos(exp); (eg: '1,0', 'cos(0.0)).\n> %s\n", parsestr);
     if ((ret = y1parsestr(parsestr, &dresult)) != 0) {
         nerrors++;
         fprintf(stdout, "error, y1process(): %d\n", ret);

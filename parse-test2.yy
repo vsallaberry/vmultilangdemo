@@ -29,7 +29,8 @@
 #include <cstring>
 #include <cmath>
 
-/* user-defined header for yacc compatibility, preceded by YY prefix (%name-prefix). */
+/* user-defined header for yacc compatibility, preceded by YY prefix (BCOMPAT_YYPREFIX),
+ * ('yacc -p<yyprefix>' or '%name-prefix'). */
 #define BCOMPAT_YYPREFIX y1
 #include "bison_compat.h"
 
@@ -39,10 +40,10 @@
  * Parser parameters
  */
 /* yacc/bison versions have different way to change yy prefix
- * the common way to do it is to use the command line option '-p prefix'
+ * the common way to do it is to use the command line option '-p<yyprefix>'
  * yacc is cool, bison is very, very cool */
-/* %name-prefix = "y1" */
-/* %define "api.prefix" "y1" */
+/* %name-prefix = "y1" - file built with 'yacc -p<yyprefix>' */
+/* %define "api.prefix" "y1" - file built with 'yacc -p<yyprefix>' */
 /* %error-verbose - not supported on all yacc */
 /* %locations - not supported on all yacc */
 /* %parse-param { long *presult } */
@@ -66,7 +67,7 @@
 /* Grammar */
 %%
 program :
-exp                 { if (my_yyresult) *((double*)my_yyresult) = $1; }
+exp                         { if (my_yyresult) *((double*)my_yyresult) = $1; }
 ;
 
 exp :
@@ -80,5 +81,5 @@ NUMBER                      { $$ = $1; }
 /*
  * CODE footer
  */
-/* nothing: y1error and y1parse2 defined to default ones in bison_compat.h */
+/* nothing: <yyprefix>error, v_<yyprefix>error and wrap_<yyprefix>parse defined to default ones in bison_compat.h */
 

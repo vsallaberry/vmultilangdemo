@@ -30,7 +30,8 @@
 /* include bison generated header */
 #include "parse-test2.hh"
 
-/* user-defined header for yacc compatibility, preceded by YY prefix (%option prefix=). */
+/* user-defined header for yacc compatibility, preceded by YY prefix (BCOMPAT_YYPREFIX),
+ * ('lex -P<yyprefix>' or '%option prefix=<yyprefix>'). */
 #define BCOMPAT_YYPREFIX y1
 #include "bison_compat.h"
 
@@ -39,7 +40,7 @@
 %option noyywrap
 %option nounput
 %option noinput
-%option prefix="y1"
+/* %option prefix="y1" - file built with 'lex -P<yyprefix> */
 /* %parse-param {YYSTYPE *lvalp} {YYLTYPE *llocp} - not supported on all lex */
 /* %option batch - can look for token in advance. Disable for interactive mode */
 /* %option noyy_top_state */
@@ -83,5 +84,5 @@ line    [\n\r]
 }
 
 %%
-/* nothing: y1parsestring and y1parsestr defined to default ones in bison_compat.h */
+/* nothing: <yyprefix>parse{str,file,buffer,fileptr} defined to default ones in bison_compat.h */
 
