@@ -95,8 +95,8 @@ FLAGS_OBJC	= -std=c99
 FLAGS_OBJCXX	=
 FLAGS_GCJ	=
 # FLAGS_<lang>_<file> is specific to one file (eg:'FLAGS_CXX_Big.cc=-O0','FLAGS_C_src/a.c=-O1')
-FLAGS_YACC_parse-test.y = -py0
-FLAGS_YACC_parse-test2.yy = -py1
+#FLAGS_YACC_parse-test.y = -py0 # no more needed as yacc rule search for BCOMPAT_YYPREFIX and add -p<prefix>
+#FLAGS_YACC_parse-test2.yy = -py1 # no more needed as yacc rule search for BCOMPAT_YYPREFIX and add -p<prefix>
 
 # System specific flags (WARN_$(sys),OPTI_$(sys),DEBUG_$(sys),LIBS_$(sys),INCS_$(sys))
 # $(sys) is lowcase(`uname`), eg: 'LIBS_darwin=-framework IOKit -framework Foundation'
@@ -409,6 +409,9 @@ LJFLAGS		=
 YFLAGS		= -d
 YCXXFLAGS	= $(YFLAGS)
 YJFLAGS		=
+BCOMPAT_SED_YYPREFIX=$(SED) -n -e \
+	"s/^[[:space:]]*\#[[:space:]]*define[[:space:]][[:space:]]*BCOMPAT_YYPREFIX[[:space:]][[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)/$${opt}\1/p" $<
+
 ############################################################################################
 # GCC -MD management (dependencies generation)
 # make on some BSD systems 1) does not support '-include' or 'sinclude', 2) does not support
@@ -585,19 +588,31 @@ $(CLASSES): $(ALLMAKEFILES) $(BUILDINC)
 	$(GCJH) $(JHFLAGS) $(FLAGS_GCJH_$<) $< -o $@
 	@$(TOUCH) $@ || true
 .l.c:
-	$(LEX) $(LFLAGS) $(FLAGS_LEX_$<) -o$@ $<
+	@opt='-P'; args=`$(BCOMPAT_SED_YYPREFIX)`; \
+	 cmd="$(LEX) $(LFLAGS) $$args $(FLAGS_LEX_$<) -o$@ $<"; \
+	 echo "$$cmd"; \
+	 $$cmd
 .ll.cc:
-	$(LEX) $(LCXXFLAGS) $(FLAGS_LEX_$<) -o$@ $<
+	@opt='-P'; args=`$(BCOMPAT_SED_YYPREFIX)`; \
+	 cmd="$(LEX) $(LCXXFLAGS) $$args $(FLAGS_LEX_$<) -o$@ $<"; \
+	 echo "$$cmd"; \
+	 $$cmd
 .llj.java:
 	$(LEX) $(LJFLAGS) $(FLAGS_LEX_$<) -o$@ $<
 .y.c:
-	$(YACC) $(YFLAGS) $(FLAGS_YACC_$<) -o $@ $<
+	@opt='-p'; args=`$(BCOMPAT_SED_YYPREFIX)`; \
+	 cmd="$(YACC) $(YFLAGS) $$args $(FLAGS_YACC_$<) -o $@ $<"; \
+	 echo "$$cmd"; \
+	 $$cmd
 	@case " $(YFLAGS) $(FLAGS_YACC_$<) " in *" -d "*) \
 	     if [ -e "$(@D)/y.tab.h" ]; then cmd='$(MV) $(@D)/y.tab.h $(@:.c=.h)'; echo "$$cmd"; $$cmd; fi ;; \
 	 esac
 .yy.cc:
-	$(YACC) $(YCXXFLAGS) $(FLAGS_YACC_$<) -o $@ $<
-	@case " $(YFLAGS) $(FLAGS_YACC_$<) " in *" -d "*) \
+	@opt='-p'; args=`$(BCOMPAT_SED_YYPREFIX)`; \
+	 cmd="$(YACC) $(YCXXFLAGS) $$args $(FLAGS_YACC_$<) -o $@ $<"; \
+	 echo "$$cmd"; \
+	 $$cmd
+	@case " $(YCXXFLAGS) $(FLAGS_YACC_$<) " in *" -d "*) \
 	     if [ -e "$(@:.cc=.h)" ]; then cmd='$(MV) $(@:.cc=.h) $(@:.cc=.hh)'; echo "$$cmd"; $$cmd; \
 	     elif [ -e "$(@D)/y.tab.h" ]; then cmd='$(MV) $(@D)/y.tab.h $(@:.cc=.hh)'; echo "$$cmd"; $$cmd; fi; \
 	 esac
