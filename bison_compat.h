@@ -17,7 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * -------------------------------------------------------------------------
- * Header for lex-flex/yacc-bison compatibility.
+ * Header for lex-flex/yacc-bison compatibility: yacc is cool, bison is very, very cool.
  *
  * This adds support for '%locations', '%error-verbose', '%parse-param' not supported
  * by all yacc. For '%error-verbose', verbose done if yacc supports YY_VERBOSE=1, for
