@@ -28,6 +28,7 @@
  *
  * - At head of .y* file, (built with 'yacc -p<yyprefix>'),include this file, preceded by:
  *   + '#define BCOMPAT_YYPREFIX <yyprefix>'
+ *   + '#define BCOMPAT_LEX_CXX' if you generate scanner with '%option c++'
  *   + [optional] '#define BCOMPAT_NO_VYYERROR' -> don't create <yyprefix>error(const char*)
  *     and v_<yyprefix>error(const char*, ...)
  *   + [optional] '#define BCOMPAT_NO_YYLOCATIONS' -> don't use LOCATIONS.
@@ -109,12 +110,22 @@
 #  endif
 #  define BCOMPAT_YYPARSE_PARAM
 
+/* if Lex is in C++ mode, only the class has a changed prefix */
+#  ifdef BCOMPAT_LEX_CXX
+#   define BCOMPAT_LEX_YYPREFIX yy
+#   undef yylex
+#  else
+#   define BCOMPAT_LEX_YYPREFIX BCOMPAT_YYPREFIX
+//#define yyparse(___void_unsused___) _##y45parse(bcompat_yylloc_t *p_yylloc, void * p_yyresult, FlexLexer * p_lexer)
+//#define yyparse(void) _##y45parse(void *p)
+#  endif
+
 #  define BCOMPAT_ADD_PREFIX(p,s) p##s
 #  define BCOMPAT_EXPAND(p,s) BCOMPAT_ADD_PREFIX(p,s)
 
-typedef struct my_yylloc_s my_yylloc_t;
+typedef struct bcompat_yylloc_s bcompat_yylloc_t;
 #  ifdef BCOMPAT_YYLOCATIONS
-struct my_yylloc_s {
+struct bcompat_yylloc_s {
     unsigned int    first_line;
     unsigned int    first_column;
     unsigned int    last_line;
@@ -133,11 +144,10 @@ BCOMPAT_DECL_V_YYERROR;
 
 /* declare internal wrap_<yyprefix>parse(), <yyprefix>{lex(),parse(),error(),out} */
 #  define BCOMPAT_YYPARSE_WRAPPER       BCOMPAT_EXPAND(wrap_, BCOMPAT_EXPAND(BCOMPAT_YYPREFIX,parse))
-#  define BCOMPAT_DECL_YYPARSE_WRAPPER  int BCOMPAT_YYPARSE_WRAPPER(my_yylloc_t *p_yylloc, void * p_yyresult)
+#  define BCOMPAT_DECL_YYPARSE_WRAPPER  int BCOMPAT_YYPARSE_WRAPPER(bcompat_yylloc_t *p_yylloc, void * p_yylexer, void * p_yyresult)
 #  define BCOMPAT_YYPARSE               BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parse)
-#  define BCOMPAT_YYLEX                 BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, lex)
 #  define BCOMPAT_YYERROR               BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, error)
-#  define BCOMPAT_YYOUT                 BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, out)
+#  define BCOMPAT_YYLEX                 BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, lex)
 int BCOMPAT_YYLEX();
 int BCOMPAT_YYERROR(const char *msg);
 int BCOMPAT_YYPARSE();
@@ -156,13 +166,20 @@ BCOMPAT_DECL_YYPARSE_WRAPPER;
 #   define YYERROR_VERBOSE 1
 #  endif
 
+#  ifdef BCOMPAT_LEX_CXX
+#   include <FlexLexer.h>
+#   undef yylex
+#   define yylex() (((FlexLexer*)my_yylexer)->yylex())
+#  endif
+static void * my_yylexer = NULL;
+
 /* code to be used to stop parsing and quit yyparse() with an error */
 #  define BCOMPAT_YYABORT   YYABORT
 
 /* user-defined yy location structure (%locations not supported by all yacc) */
-static my_yylloc_t *    my_yylloc;
+static bcompat_yylloc_t *   my_yylloc = NULL;
 /* user-defined yyparse output ('%parse-param {long *res}' not supported by all yacc) */
-static void *           my_yyresult;
+static void *               my_yyresult = NULL;
 
 /* defining default yyerror unless user has set BCOMPAT_NO_VYYERROR */
 #  ifndef BCOMPAT_NO_VYYERROR
@@ -197,6 +214,7 @@ int	BCOMPAT_YYERROR_DEFAULT(const char *msg) {
 
 /* yyparse wrapper */
 BCOMPAT_DECL_YYPARSE_WRAPPER {
+    my_yylexer = p_yylexer;
     my_yylloc = p_yylloc;
     my_yyresult = p_yyresult;
     return BCOMPAT_YYPARSE();
@@ -215,30 +233,111 @@ BCOMPAT_DECL_YYPARSE_WRAPPER {
 #  define BCOMPAT_YYPARSESTR        BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsestr)
 #  define BCOMPAT_YYPARSEFILEPTR    BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsefileptr)
 #  define BCOMPAT_YYPARSEBUFFER     BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsebuffer)
-#  define BCOMPAT_YYSCANSTRING      BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, _scan_string)
-#  define BCOMPAT_YYSCANBUFFER      BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, _scan_buffer)
-#  define BCOMPAT_YYIN              BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, in)
-#  define BCOMPAT_YYLLENG           BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, leng)
+#  define BCOMPAT_YYSCANSTRING      BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, _scan_string)
+#  define BCOMPAT_YYSCANBUFFER      BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, _scan_buffer)
+#  define BCOMPAT_YYIN              BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, in)
+#  define BCOMPAT_YYOUT             BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, out)
+#  define BCOMPAT_YYLLENG           BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, leng)
+#  define BCOMPAT_YYFLEXLEXER       BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, FlexLexer)
 
+#  ifdef BCOMPAT_YYLOCATIONS
 /* yylloc location structure */
-#  ifdef BCOMPAT_YYLOCATIONS
-static my_yylloc_t my_yylloc = { INT_MAX, INT_MAX, INT_MAX, INT_MAX, NULL };
-#  endif
-
+static bcompat_yylloc_t my_yylloc = { INT_MAX, INT_MAX, INT_MAX, INT_MAX, NULL };
 /* Code run each time a pattern is matched. */
-#  ifdef BCOMPAT_YYLOCATIONS
 #   define YY_USER_ACTION  do { \
         my_yylloc.first_column = my_yylloc.last_column; \
         my_yylloc.last_column+=BCOMPAT_YYLLENG; \
     } while(0);
 #  endif
 
+#  ifdef BCOMPAT_LEX_CXX
+#   include <streambuf>
+#   include <sstream>
+#   include <ext/stdio_filebuf.h>
 static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename, FILE *pfile, void * presult) {
-    int             yyresult;
+    FlexLexer *                 lexer = NULL;
+    std::basic_streambuf<char>* streambuf = NULL;
+    std::string *               string = NULL;
+    std::istream *              istream = NULL;
+    //std::stringbuf *          fb = NULL;
+    //std::filebuf *            fb = NULL;
+    bcompat_yylloc_t *          p_yylloc = NULL;
+    int                         yyresult;
 #   ifdef BCOMPAT_YYLOCATIONS
-    const char *    input_name = filename;
+    //bcompat_yylloc_t          yylloc = { 1, 1, 1, 1, NULL };
+    const char *                input_name = filename;
 
+    //p_yylloc = &yylloc;
+    p_yylloc = &my_yylloc;
     if (my_yylloc.first_column != INT_MAX) {
+        fprintf(stderr, "Scan error, %s() is not reentrant\n", __func__);
+        return -1;
+    }
+#   endif
+    if (str != NULL) {
+        if (size > 0) {
+            string = new std::string(str, size);
+        } else {
+            string = new std::string(str);
+        }
+        istream = new std::istringstream(*string);
+    } else if (pfile != NULL) {
+        streambuf = new __gnu_cxx::stdio_filebuf<char>(pfile, std::ios::in);
+        istream = new std::istream(streambuf);
+    } else {
+        if (filename == NULL) {
+            istream = &std::cin;
+        } else {
+            std::filebuf * filebuf = new std::filebuf();
+            streambuf = filebuf;
+            if (!(filebuf->open(filename, std::ios::in))) {
+                fprintf(stderr, "Scan error, cannot open file '%s': %s\n", filename, strerror (errno));
+                return -1;
+            }
+        }
+    }
+
+    lexer = new BCOMPAT_YYFLEXLEXER(istream, &std::cerr);
+
+#   ifdef BCOMPAT_YYLOCATIONS
+    if (istream == &std::cin) input_name = "<stdin>";
+    p_yylloc->filename = strdup(input_name ? input_name : "<?>");
+    p_yylloc->first_line = p_yylloc->first_column = p_yylloc->last_line = p_yylloc->last_column = 1;
+#   endif
+    yyresult = BCOMPAT_YYPARSE_WRAPPER(p_yylloc, lexer, presult);
+    if (pfile != NULL && pfile != stdin) {
+        fclose(pfile);
+    }
+#   ifdef BCOMPAT_YYLOCATIONS
+    if (p_yylloc->filename) {
+        free(p_yylloc->filename);
+        p_yylloc->filename = NULL;
+    }
+    p_yylloc->first_column = INT_MAX;
+#   endif
+    if (lexer)
+        delete lexer;
+    if (istream && istream != &std::cin)
+        delete istream;
+    if (streambuf) {
+        //streambuf->close();
+        delete streambuf;
+    }
+    if (string)
+        delete string;
+    return yyresult;
+}
+#  else
+static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename, FILE *pfile, void * presult) {
+    bcompat_yylloc_t *  p_yylloc = NULL;
+    int                 yyresult;
+#   ifdef BCOMPAT_YYLOCATIONS
+    //bcompat_yylloc_t    yylloc = { 1, 1, 1, 1, NULL };
+    const char *        input_name = filename;
+
+    //p_yylloc = &yylloc;
+    p_yylloc = &my_yylloc;
+    if (p_yylloc->first_column != INT_MAX) {
         fprintf(stderr, "Scan error, %s() is not reentrant\n", __func__);
         return -1;
     }
@@ -261,24 +360,23 @@ static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename
     }
 #   ifdef BCOMPAT_YYLOCATIONS
     if ((BCOMPAT_YYIN) == stdin) input_name = "<stdin>";
-    my_yylloc.filename = strdup(input_name ? input_name : "<?>");
-    my_yylloc.first_line = my_yylloc.first_column = my_yylloc.last_line = my_yylloc.last_column = 1;
-    yyresult = BCOMPAT_YYPARSE_WRAPPER(&my_yylloc, presult);
-#   else
-    yyresult = BCOMPAT_YYPARSE_WRAPPER(NULL, presult);
+    p_yylloc->filename = strdup(input_name ? input_name : "<?>");
+    p_yylloc->first_line = p_yylloc->first_column = p_yylloc->last_line = p_yylloc->last_column = 2;
 #   endif
+    yyresult = BCOMPAT_YYPARSE_WRAPPER(p_yylloc, NULL, presult);
     if ((BCOMPAT_YYIN) != NULL && (BCOMPAT_YYIN) != stdin) {
         fclose(BCOMPAT_YYIN);
     }
 #   ifdef BCOMPAT_YYLOCATIONS
-    if (my_yylloc.filename) {
-        free(my_yylloc.filename);
-        my_yylloc.filename = NULL;
+    if (p_yylloc->filename) {
+        free(p_yylloc->filename);
+        p_yylloc->filename = NULL;
     }
-    my_yylloc.first_column = INT_MAX;
+    p_yylloc->first_column = INT_MAX;
 #   endif
     return yyresult;
 }
+#  endif
 
 BCOMPAT_EXPORT int BCOMPAT_YYPARSEFILE(const char *filename, void * presult) {
     return BCOMPAT_YYPARSEALL(NULL, 0, filename, NULL, presult);

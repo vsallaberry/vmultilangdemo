@@ -23,7 +23,10 @@ parse-test.c
 parse-test.h
 parse-test2.cc
 parse-test2.hh
+parse-test3.cc
+parse-test3.hh
 scan-test.c
 scan-test2.cc
+scan-test3.cc
 vmultilangdemo
 vmultilangdemo.dSYM

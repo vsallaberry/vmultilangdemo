@@ -17,22 +17,62 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * -------------------------------------------------------------------------
- * main
+ * main calling, c, cpp, java, parse (lex c, lex cpp, yacc c, bison java).
  */
+#include <iostream>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <climits>
+#include <cmath>
+#include <ctype.h>
 
 #include "version.h"
 #if BUILD_JAVAOBJ
 # include <gcj/cni.h>
 #endif
 
-#if BUILD_YACC
+#if BUILD_YACC && BUILD_LEX
 # include "bison_compat.h"
 BCOMPAT_PARSER_DECL(y0);
 BCOMPAT_PARSER_DECL(y1);
-#endif
+BCOMPAT_PARSER_DECL(y2);
+
+typedef int (*parsefun_t)(void *, void *);
+typedef struct {
+    parsefun_t      parsefun;
+    const char *    content; /* content for parsestr, filepath for parsefile */
+    /* no union specific initilizer in c++98 -> inline union */
+    long            lexpected; /* put <> INT_MAX to consider output as long, INT_MIN to not test expected */
+    double          dexpected; /* put <> HUGE_VAL to consider output as double, -HUGE_VAL to not test expected */
+    const char *    sexpected; /* put <> NULL to consider output as string */
+    const char *    title;
+} parse_test_t;
+
+# define Y0_DESC     "simple arithmetic ('1', '2*(-1+3)', ...)."
+# define Y1_DESC     "`exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0))."
+# define Y2_DESC     "`exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0))."
+# define PF(x)  ((parsefun_t)(x))
+static const parse_test_t parse_tests[] = {
+    { PF(y0parsefile),      NULL,               INT_MIN, HUGE_VAL, NULL,    "1.1) enter " Y0_DESC },
+    { PF(y0parsefileptr),   (const char*)stdin, INT_MIN, HUGE_VAL, NULL,    "1.2) enter " Y0_DESC },
+    { PF(y1parsefile),      NULL,               INT_MAX, -HUGE_VAL, NULL,   "2.1) enter " Y1_DESC },
+    { PF(y1parsefile),      NULL,               INT_MAX, -HUGE_VAL, NULL,   "2.2) enter " Y1_DESC },
+    { PF(y2parsefile),      NULL,               INT_MAX, -HUGE_VAL, NULL,   "3.1) enter " Y2_DESC },
+    { PF(y2parsefileptr),   (const char*)stdin, INT_MAX, -HUGE_VAL, NULL,   "3.2) enter " Y2_DESC },
+    { PF(y0parsestr),       " 2  *(-1+3  )",    4, HUGE_VAL, NULL,          "1.3) [buffer] " Y0_DESC },
+    { PF(y1parsestr),       " cos( 0,0) ",      INT_MAX, 1.0, NULL,         "2.3) [buffer] " Y1_DESC },
+    { PF(y1parsestr),       " 3.14 ",           INT_MAX, 3.14, NULL,        "2.4) [buffer] " Y1_DESC },
+    { PF(y2parsestr),       " cos( 0,0) ",      INT_MAX, 1.0, NULL,         "3.3) [buffer] " Y2_DESC },
+    { PF(y2parsestr),       " 3.14 ",           INT_MAX, 3.14, NULL,        "3.4) [buffer] " Y2_DESC },
+    { PF(y0parsestr),       " -999 % 1000",     -999, HUGE_VAL, NULL,       "1.4) [buffer] " Y0_DESC },
+    { NULL, NULL, 0, 0.0, NULL, NULL },
+};
+static bool sisprint(const char * s) {
+    while (*s && isascii(*s)) s++;
+    return !*s;
+}
+#endif /* ifdef BUILD_YACC */
 
 extern "C" const char *const* vmultilangdemo_get_source();
 extern "C" int m();
@@ -40,11 +80,6 @@ extern "C" int cpp_call_for_c(int);
 extern "C" int cpp_cni_call_for_c(int);
 
 int main(int argc, const char *const* argv) {
-#   if BUILD_LEX && BUILD_YACC
-    const char *    parsestr;
-    double          dresult, dexpected;
-    long            lresult, lexpected;
-#   endif
     unsigned int    nerrors = 0;
     int             ret;
 
@@ -104,68 +139,42 @@ int main(int argc, const char *const* argv) {
 #   if BUILD_LEX && BUILD_YACC
     fprintf(stdout, "\n** Running yacc/lex samples\n");
 
-    /* parse-test: stdin */
-    fprintf(stdout, "\n1.1) enter simple arithmetic ('1', '2*(-1+3)', ...).\n> ");
-    if ((ret = y0parsefile(NULL, &lresult)) != 0) {
-        nerrors++;
-        fprintf(stdout, "error, y0process(): %d\n", ret);
-    } else fprintf(stdout, "  = %ld\n", lresult);
+    for (const parse_test_t * test = parse_tests; test && test->parsefun; test++) {
+        char            result[4096];
+        void *          presult = result;
 
-    /* parse-test: stdin */
-    fprintf(stdout, "\n1.2) enter simple arithmetic ('1', '2*(-1+3)', ...).\n> ");
-    if ((ret = y0parsefile(NULL, &lresult)) != 0) {
-        nerrors++;
-        fprintf(stdout, "error, y0process(): %d\n", ret);
-    } else fprintf(stdout, "  = %ld\n", lresult);
-
-    /* parse-test2: stdin */
-    fprintf(stdout, "\n2.1) enter `exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0)).\n> ");
-    if ((ret = y1parsefile(NULL, &dresult)) != 0) {
-        nerrors++;
-        fprintf(stdout, "error y1process(): %d\n", ret);
-    } else fprintf(stdout, "  = %lf\n", dresult);
-
-    /* parse-test2: stdin */
-    fprintf(stdout, "\n2.2) enter `exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0)).\n> ");
-    if ((ret = y1parsefile(NULL, &dresult)) != 0) {
-        nerrors++;
-        fprintf(stdout, "error y1process(): %d\n", ret);
-    } else fprintf(stdout, "  = %lf\n", dresult);
-
-    /* parse-test: buffer */
-    parsestr = " 2  *(-1+3  )";
-    lexpected = 4;
-    fprintf(stdout, "\n1.3) simple arithmetic ('1', '2*(-1+3)', ...).\n> %s\n", parsestr);
-    if ((ret = y0parsestr(parsestr, &lresult)) != 0) {
-        nerrors++;
-        fprintf(stdout, "error, y0process(): %d\n", ret);
-    } else {
-        fprintf(stdout, "  = %ld\n", lresult);
-        if (lresult != lexpected) nerrors++;
-    }
-
-    /* parse-test2: buffer */
-    parsestr = " cos( 0,0) ";
-    dexpected = 1.0;
-    fprintf(stdout, "\n2.3) exp: = float | (exp) | cos(exp); (eg: '1,0', 'cos(0.0)).\n> %s\n", parsestr);
-    if ((ret = y1parsestr(parsestr, &dresult)) != 0) {
-        nerrors++;
-        fprintf(stdout, "error, y1process(): %d\n", ret);
-    } else {
-        fprintf(stdout, "  = %lf\n", dresult);
-        if (dresult != dexpected) nerrors++;
-    }
-
-    /* parse-test2: buffer */
-    parsestr = " 3.14 ";
-    dexpected = 3.14;
-    fprintf(stdout, "\n2.3) exp: = float | (exp) | cos(exp); (eg: '1,0', 'cos(0.0)).\n> %s\n", parsestr);
-    if ((ret = y1parsestr(parsestr, &dresult)) != 0) {
-        nerrors++;
-        fprintf(stdout, "error, y1process(): %d\n", ret);
-    } else {
-        fprintf(stdout, "  = %lf\n", dresult);
-        if (dresult != dexpected) nerrors++;
+        fprintf(stdout, "\n%s\n> ", test->title);
+        if (test->content != NULL && sisprint((const char*)test->content)) {
+            fprintf(stdout, "%s\n", test->content);
+        }
+        if ((ret = test->parsefun((void*)test->content, &result)) != 0) {
+            nerrors++;
+            fprintf(stdout, "error, <yy>process(): %d\n", ret);
+        } else {
+            char check = CHAR_MIN+4;
+            if (test->lexpected != INT_MAX) {
+                long lresult = *((long*)presult);
+                fprintf(stdout, "  = %ld", lresult);
+                if (test->lexpected != INT_MIN)
+                    check = (lresult == test->lexpected);
+            } else if (test->dexpected != HUGE_VAL) {
+                double dresult = *((double*)presult);
+                fprintf(stdout, "  = %lf", dresult);
+                if (test->dexpected != -HUGE_VAL)
+                   check = (dresult == test->dexpected);
+            } else if (test->sexpected != NULL) {
+                strcpy(result+sizeof(result)-4, "...");
+                fprintf(stdout, "  = %s", result);
+                check = !strcmp(result, test->sexpected);
+            } else {
+                fprintf(stdout, "  = ???");
+            }
+            if (check != CHAR_MIN+4) {
+                if (!check) { nerrors++; fputs(" !! [KO]", stdout); }
+                else fputs(" [OK]", stdout);
+            }
+            fputc('\n', stdout);
+        }
     }
 #   endif
 
