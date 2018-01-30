@@ -56,7 +56,8 @@ line    [\n\r]
 
 <INITIAL>
 {
-    "cos"       return COS;
+    "sin"       return SIN;
+    "tan"       return TAN;
     "("         return LPAREN;
     ")"         return RPAREN;
     {number} {
@@ -66,12 +67,12 @@ line    [\n\r]
         n = strtod(yytext, &endptr);
         if (endptr && *endptr && (*endptr == '.' || *endptr == ',')) {
             *endptr = *endptr == '.' ? ',' : '.';
+            errno = 0;
             n = strtod(yytext, &endptr);
             *endptr = *endptr == '.' ? ',' : '.';
         }
         if (n == -HUGE_VAL || n == HUGE_VAL || errno == ERANGE) {
-            //v_y1error("scan error, float out of range.\n");
-            fprintf(stderr, "scan error, float out of range.\n");
+            v_y2error("scan error, float out of range.");
             yyterminate();
         } else {
             y2lval.number = n;
@@ -82,8 +83,7 @@ line    [\n\r]
     {line}      yyterminate();
     <<EOF>>     yyterminate();
     . {
-        //v_y1error("scan error, unexpected %c\n", yytext[0]);
-        fprintf(stderr, "scan error, unexpected %c\n", yytext[0]);
+        v_y2error("scan error, unexpected %c", yytext[0]);
         return *yytext;
 	}
 }

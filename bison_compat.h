@@ -192,10 +192,10 @@ BCOMPAT_DECL_V_YYERROR {
 #  ifdef BCOMPAT_YYLOCATIONS
     if (my_yylloc) {
         if (my_yylloc->first_line == my_yylloc->last_line) {
-            fprintf(out, "%s:l%d.%d-%d: ", my_yylloc->filename, my_yylloc->first_line,
+            fprintf(out, "%s: l%d.%d-%d: ", my_yylloc->filename, my_yylloc->first_line,
                     my_yylloc->first_column, my_yylloc->last_column-1);
         } else {
-            fprintf(out, "%s:l%d.%d-l%d.%d: ", my_yylloc->filename,
+            fprintf(out, "%s: l%d.%d-l%d.%d: ", my_yylloc->filename,
                     my_yylloc->first_line, my_yylloc->first_column,
                     my_yylloc->last_line, my_yylloc->last_column-1);
         }

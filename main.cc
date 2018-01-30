@@ -25,6 +25,7 @@
 #include <cstring>
 #include <climits>
 #include <cmath>
+#include <csignal>
 #include <ctype.h>
 
 #include "version.h"
@@ -50,8 +51,8 @@ typedef struct {
 } parse_test_t;
 
 # define Y0_DESC     "simple arithmetic ('1', '2*(-1+3)', ...)."
-# define Y1_DESC     "`exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0))."
-# define Y2_DESC     "`exp: = float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0))."
+# define Y1_DESC     "`exp: float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0))."
+# define Y2_DESC     "`exp: float | (exp) | sin(exp) | tan(exp);` (eg: '1,0', 'sin(0.0))."
 # define PF(x)  ((parsefun_t)(x))
 static const parse_test_t parse_tests[] = {
     { PF(y0parsefile),      NULL,               INT_MIN, HUGE_VAL, NULL,    "1.1) enter " Y0_DESC },
@@ -63,14 +64,14 @@ static const parse_test_t parse_tests[] = {
     { PF(y0parsestr),       " 2  *(-1+3  )",    4, HUGE_VAL, NULL,          "1.3) [buffer] " Y0_DESC },
     { PF(y1parsestr),       " cos( 0,0) ",      INT_MAX, 1.0, NULL,         "2.3) [buffer] " Y1_DESC },
     { PF(y1parsestr),       " 3.14 ",           INT_MAX, 3.14, NULL,        "2.4) [buffer] " Y1_DESC },
-    { PF(y2parsestr),       " cos( 0,0) ",      INT_MAX, 1.0, NULL,         "3.3) [buffer] " Y2_DESC },
+    { PF(y2parsestr),       " sin( 0,0) ",      INT_MAX, 0.0, NULL,         "3.3) [buffer] " Y2_DESC },
     { PF(y2parsestr),       " 3.14 ",           INT_MAX, 3.14, NULL,        "3.4) [buffer] " Y2_DESC },
     { PF(y0parsestr),       " -999 % 1000",     -999, HUGE_VAL, NULL,       "1.4) [buffer] " Y0_DESC },
     { NULL, NULL, 0, 0.0, NULL, NULL },
 };
 static bool sisprint(const char * s) {
     while (*s && isascii(*s)) s++;
-    return !*s;
+    return *s == 0;
 }
 #endif /* ifdef BUILD_YACC */
 
@@ -78,6 +79,15 @@ extern "C" const char *const* vmultilangdemo_get_source();
 extern "C" int m();
 extern "C" int cpp_call_for_c(int);
 extern "C" int cpp_cni_call_for_c(int);
+
+/** global running state used by signal handler */
+static sig_atomic_t s_running = 1;
+/** signal handler * /
+static void sig_handler(int sig) {
+    if (sig == SIGINT)
+        s_running = 0;
+}
+*/
 
 int main(int argc, const char *const* argv) {
     unsigned int    nerrors = 0;
@@ -115,6 +125,9 @@ int main(int argc, const char *const* argv) {
 #     endif
     }
 
+    // install SIG_INT handler
+    //signal(SIGINT, sig_handler);
+
     // Run cpp/c/objc test code
     fprintf(stdout, "\n** running c/cpp/obj sample code\n");
     //m();
@@ -139,7 +152,7 @@ int main(int argc, const char *const* argv) {
 #   if BUILD_LEX && BUILD_YACC
     fprintf(stdout, "\n** Running yacc/lex samples\n");
 
-    for (const parse_test_t * test = parse_tests; test && test->parsefun; test++) {
+    for (const parse_test_t * test = parse_tests; s_running && test && test->parsefun; test++) {
         char            result[4096];
         void *          presult = result;
 

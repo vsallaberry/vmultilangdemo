@@ -63,11 +63,12 @@ line    [\n\r]
         n = strtod(y1text, &endptr);
         if (endptr && *endptr && (*endptr == '.' || *endptr == ',')) {
             *endptr = *endptr == '.' ? ',' : '.';
+            errno = 0;
             n = strtod(y1text, &endptr);
             *endptr = *endptr == '.' ? ',' : '.';
         }
         if (n == -HUGE_VAL || n == HUGE_VAL || errno == ERANGE) {
-            v_y1error("scan error, float out of range.\n");
+            v_y1error("scan error, float out of range.");
             yyterminate();
         } else {
             y1lval.number = n;
@@ -78,7 +79,7 @@ line    [\n\r]
     {line}      yyterminate();
     <<EOF>>     yyterminate();
     . {
-        v_y1error("scan error, unexpected %c\n", y1text[0]);
+        v_y1error("scan error, unexpected %c", y1text[0]);
         return *y1text;
 	}
 }

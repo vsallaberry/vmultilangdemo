@@ -54,7 +54,8 @@
 /* Tokens definitions */
 %token NUMBER
 /*%token <number> NUMBER "number" -- bsd yacc does not like it */
-%token COS
+%token SIN
+%token TAN
 %token LPAREN   "("
 %token RPAREN   ")"
 
@@ -73,7 +74,8 @@ exp                         { if (my_yyresult) *((double*)my_yyresult) = $1; }
 
 exp :
 NUMBER                      { $$ = $1; }
-| COS LPAREN exp RPAREN     { $$ = cos($3); }
+| TAN LPAREN exp RPAREN     { $$ = tan($3); }
+| SIN LPAREN exp RPAREN     { $$ = sin($3); }
 | LPAREN exp RPAREN         { $$ = $2; }
 | error                     { my_yyresult=NULL; BCOMPAT_YYABORT; }
 ;

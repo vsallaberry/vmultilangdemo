@@ -39,7 +39,7 @@
 /* divide_by_0 check shortcut to be used in grammar rules */
 #define CHECK_DIVIDE_0(n)       if ((n) == 0) { \
                                     my_yyresult = NULL; \
-                                    fprintf(stderr, "error: bad idea to divide by 0\n"); \
+                                    v_y0error("error: bad idea to divide by 0"); \
                                     BCOMPAT_YYABORT; \
                                 } else
 
