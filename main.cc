@@ -31,6 +31,9 @@
 #include "version.h"
 #if BUILD_JAVAOBJ
 # include <gcj/cni.h>
+# if BUILD_BISON3
+#  include "Parser.hh"
+# endif
 #endif
 
 #if BUILD_YACC && BUILD_LEX
@@ -42,7 +45,7 @@ BCOMPAT_PARSER_DECL(y2);
 typedef int (*parsefun_t)(void *, void *);
 typedef struct {
     parsefun_t      parsefun;
-    const char *    content; /* content for parsestr, filepath for parsefile */
+    const void *    content; /* content for parsestr, filepath for parsefile, pfile for parsefileptr */
     /* no union specific initilizer in c++98 -> inline union */
     long            lexpected; /* put <> INT_MAX to consider output as long, INT_MIN to not test expected */
     double          dexpected; /* put <> HUGE_VAL to consider output as double, -HUGE_VAL to not test expected */
@@ -56,11 +59,11 @@ typedef struct {
 # define PF(x)  ((parsefun_t)(x))
 static const parse_test_t parse_tests[] = {
     { PF(y0parsefile),      NULL,               INT_MIN, HUGE_VAL, NULL,    "1.1) enter " Y0_DESC },
-    { PF(y0parsefileptr),   (const char*)stdin, INT_MIN, HUGE_VAL, NULL,    "1.2) enter " Y0_DESC },
+    { PF(y0parsefileptr),   stdin,              INT_MIN, HUGE_VAL, NULL,    "1.2) enter " Y0_DESC },
     { PF(y1parsefile),      NULL,               INT_MAX, -HUGE_VAL, NULL,   "2.1) enter " Y1_DESC },
     { PF(y1parsefile),      NULL,               INT_MAX, -HUGE_VAL, NULL,   "2.2) enter " Y1_DESC },
     { PF(y2parsefile),      NULL,               INT_MAX, -HUGE_VAL, NULL,   "3.1) enter " Y2_DESC },
-    { PF(y2parsefileptr),   (const char*)stdin, INT_MAX, -HUGE_VAL, NULL,   "3.2) enter " Y2_DESC },
+    { PF(y2parsefileptr),   stdin,              INT_MAX, -HUGE_VAL, NULL,   "3.2) enter " Y2_DESC },
     { PF(y0parsestr),       " 2  *(-1+3  )",    4, HUGE_VAL, NULL,          "1.3) [buffer] " Y0_DESC },
     { PF(y1parsestr),       " cos( 0,0) ",      INT_MAX, 1.0, NULL,         "2.3) [buffer] " Y1_DESC },
     { PF(y1parsestr),       " 3.14 ",           INT_MAX, 3.14, NULL,        "2.4) [buffer] " Y1_DESC },
@@ -90,7 +93,7 @@ static void sig_handler(int sig) {
 */
 
 int main(int argc, const char *const* argv) {
-    unsigned int    nerrors = 0;
+    unsigned int    nerrors = 0, nok = 0;
     int             ret;
 
     fprintf(stdout, "%s (%s v%s built on %s, %s from git-rev %s)\n\n",
@@ -133,20 +136,34 @@ int main(int argc, const char *const* argv) {
     //m();
     if ((ret = cpp_call_for_c(0)) != 3) {
         nerrors++;
-    }
+    } else
+        nok++;
     fprintf(stdout, "cpp_call_for_c(0) --> %d\n", ret);
 
     // Run Java Code if included in build
-#   if BUILD_JAVAOBJ
+#  if BUILD_JAVAOBJ
     fprintf(stdout, "\n** Starting Java...\n");
     JvCreateJavaVM(NULL);
     JvAttachCurrentThread(NULL, NULL);
     if ((ret = cpp_cni_call_for_c(0)) != 3) {
         nerrors++;
-    }
+    } else
+        nok++;
     fprintf(stdout, "cpp_cni_call_for_c(0) --> %d\n", ret);
+#   if BUILD_BISON3
+    Parser * jparser = new Parser(NULL);
+    jparser->setDebugLevel(965);
+    ret = (int) jparser->getDebugLevel();
+    fprintf(stdout, "javaparser addr:%p debuglevel:%d\n", (void*)jparser, ret);
+    if (ret == 965) nok++; else nerrors++;
+    try {
+        //jparser->parse();
+    } catch (...) {
+        fprintf(stdout, "java exception\n");
+    }
+#   endif // if BUILD_BISON3
     JvDetachCurrentThread();
-#   endif
+#  endif // if BUILD_JAVAOBJ
 
     // Run lex/yacc if included in build.
 #   if BUILD_LEX && BUILD_YACC
@@ -158,7 +175,7 @@ int main(int argc, const char *const* argv) {
 
         fprintf(stdout, "\n%s\n> ", test->title);
         if (test->content != NULL && sisprint((const char*)test->content)) {
-            fprintf(stdout, "%s\n", test->content);
+            fprintf(stdout, "%s\n", (const char*)test->content);
         }
         if ((ret = test->parsefun((void*)test->content, &result)) != 0) {
             nerrors++;
@@ -184,13 +201,14 @@ int main(int argc, const char *const* argv) {
             }
             if (check != CHAR_MIN+4) {
                 if (!check) { nerrors++; fputs(" !! [KO]", stdout); }
-                else fputs(" [OK]", stdout);
-            }
+                else { nok++; fputs(" [OK]", stdout); }
+            } else
+                nok++;
             fputc('\n', stdout);
         }
     }
 #   endif
 
-    fprintf(stdout, "\n** %u error(s)\n", nerrors);
+    fprintf(stdout, "\n** %u error(s) (%d tests)\n", nerrors, nerrors + nok);
     return nerrors;
 }
