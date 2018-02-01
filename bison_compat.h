@@ -87,7 +87,7 @@
  * DECLARATIONS for YACC OR LEX GENERATED SOURCE.
  ********************************************************/
 #  if defined(_DEBUG) && defined(_TEST)
-#   pragma message "** generated YACC or LEX file"
+/* #   pragma message "** generated YACC or LEX file" */
 #  endif
 
 #  ifdef __cplusplus
@@ -160,7 +160,7 @@ BCOMPAT_DECL_YYPARSE_WRAPPER;
  * DECLARATIONS for YACC GENERATED SOURCE.
  ********************************************************/
 #  if defined(_DEBUG) && defined(_TEST)
-#   pragma message "** generated YACC file"
+/* #   pragma message "** generated YACC file" */
 #  endif
 #  ifndef YYERROR_VERBOSE
 #   define YYERROR_VERBOSE 1
@@ -225,7 +225,7 @@ BCOMPAT_DECL_YYPARSE_WRAPPER {
  * DECLARATIONS for LEX GENERATED SOURCE.
  ********************************************************/
 #  if defined(_DEBUG) && defined(_TEST)
-#   pragma message "** generated LEX file"
+/* #   pragma message "** generated LEX file" */
 #  endif
 
 #  define BCOMPAT_YYPARSEALL        BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parseall)
@@ -253,7 +253,14 @@ static bcompat_yylloc_t my_yylloc = { INT_MAX, INT_MAX, INT_MAX, INT_MAX, NULL }
 #  ifdef BCOMPAT_LEX_CXX
 #   include <streambuf>
 #   include <sstream>
-#   include <ext/stdio_filebuf.h>
+#   include <fstream>
+#   include <string>
+#   if defined(__GLIBCXX__) || defined(_GLIBCXX_BEGIN_NAMESPACE_VERSION) || defined(_GLIBCXX_BEGIN_NAMESPACE)
+#    define BCOMPAT_STDIO_FILEBUF
+#    include <ext/stdio_filebuf.h>
+#   else
+#    pragma message "no __gnucxx::stdio_filebuf --> no <yyprefix>parsefileptr()"
+#   endif // ifdef GLIBCXX...
 static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename, FILE *pfile, void * presult) {
     FlexLexer *                 lexer = NULL;
     std::basic_streambuf<char>* streambuf = NULL;
@@ -282,8 +289,13 @@ static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename
         }
         istream = new std::istringstream(*string);
     } else if (pfile != NULL) {
+#       ifdef BCOMPAT_STDIO_FILEBUF
         streambuf = new __gnu_cxx::stdio_filebuf<char>(pfile, std::ios::in);
         istream = new std::istream(streambuf);
+#       else
+        fprintf(stderr, "Scan error, <yyprefix>parsefileptr() not supported on this system, need __gnu_cxx:stdio_filebuf.\n");
+        return -1;
+#       endif
     } else {
         if (filename == NULL) {
             istream = &std::cin;
@@ -411,7 +423,7 @@ BCOMPAT_EXPORT int BCOMPAT_YYPARSEBUFFER(char *base, size_t size, void * presult
  * DECLARATIONS FOR OTHER FILES THAN LEX/YACC GENERATED ONES.
  ************************************************************/
 #  if defined(_DEBUG) && defined(_TEST)
-#   pragma message "** OTHER FILE"
+/* #   pragma message "** OTHER FILE" */
 #  endif
 
 #  ifdef __cplusplus
