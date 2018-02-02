@@ -29,5 +29,6 @@ parse-test3.hh
 scan-test.c
 scan-test2.cc
 scan-test3.cc
+valgrind_*.log
 vmultilangdemo
 vmultilangdemo.dSYM
