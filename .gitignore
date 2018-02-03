@@ -10,6 +10,7 @@ A.hh
 B.hh
 Build.java
 C.hh
+FlexLexer.h
 JCni.hh
 JMain.hh
 Parser.hh
