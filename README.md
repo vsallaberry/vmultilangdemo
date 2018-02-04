@@ -13,7 +13,7 @@
 (c/c++/java/objc/bison/flex).
 
 NOTE:
-- This is a work in progress, this program is not no fully operational yet.
+- This is a work in progress, this program is not fully operational yet.
 
 ## System requirements
 - A somewhat capable compiler (gcc/clang), make (GNU,BSD), sh (sh/bash/ksh)
