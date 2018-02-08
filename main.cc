@@ -41,12 +41,14 @@
 BCOMPAT_PARSER_DECL(y0);
 BCOMPAT_PARSER_DECL(y1);
 BCOMPAT_PARSER_DECL(y2);
-
+# ifdef BUILD_SYS_linux
+BCOMPAT_PARSER_DECL(y0linux_);
+# endif
 typedef int (*parsefun_t)(void *, void *);
 typedef struct {
     parsefun_t      parsefun;
     const void *    content; /* content for parsestr, filepath for parsefile, pfile for parsefileptr */
-    /* no union specific initilizer in c++98 -> inline union */
+    /* no union specific initializer in c++98 -> inline union */
     long            lexpected; /* put <> INT_MAX to consider output as long, INT_MIN to not test expected */
     double          dexpected; /* put <> HUGE_VAL to consider output as double, -HUGE_VAL to not test expected */
     const char *    sexpected; /* put <> NULL to consider output as string */
@@ -73,10 +75,11 @@ static const parse_test_t parse_tests[] = {
     { NULL, NULL, 0, 0.0, NULL, NULL },
 };
 static bool sisprint(const char * s) {
-    while (*s && isascii(*s)) s++;
+    while (*s && isprint(*s)) s++;
     return *s == 0;
 }
-#endif /* ifdef BUILD_YACC */
+static bool test_parser(const parse_test_t * test, FILE * out, unsigned int * nerrors, unsigned int * nok);
+#endif // if BUILD_LEX && BUILD_YACC
 
 extern "C" const char *const* vmultilangdemo_get_source();
 extern "C" int m();
@@ -170,45 +173,63 @@ int main(int argc, const char *const* argv) {
     fprintf(stdout, "\n** Running yacc/lex samples\n");
 
     for (const parse_test_t * test = parse_tests; s_running && test && test->parsefun; test++) {
-        char            result[4096];
-        void *          presult = result;
-
-        fprintf(stdout, "\n%s\n> ", test->title);
-        if (test->content != NULL && sisprint((const char*)test->content)) {
-            fprintf(stdout, "%s\n", (const char*)test->content);
-        }
-        if ((ret = test->parsefun((void*)test->content, &result)) != 0) {
-            nerrors++;
-            fprintf(stdout, "error, <yy>process(): %d\n", ret);
-        } else {
-            char check = CHAR_MIN+4;
-            if (test->lexpected != INT_MAX) {
-                long lresult = *((long*)presult);
-                fprintf(stdout, "  = %ld", lresult);
-                if (test->lexpected != INT_MIN)
-                    check = (lresult == test->lexpected);
-            } else if (test->dexpected != HUGE_VAL) {
-                double dresult = *((double*)presult);
-                fprintf(stdout, "  = %lf", dresult);
-                if (test->dexpected != -HUGE_VAL)
-                   check = (dresult == test->dexpected);
-            } else if (test->sexpected != NULL) {
-                strcpy(result+sizeof(result)-4, "...");
-                fprintf(stdout, "  = %s", result);
-                check = !strcmp(result, test->sexpected);
-            } else {
-                fprintf(stdout, "  = ???");
-            }
-            if (check != CHAR_MIN+4) {
-                if (!check) { nerrors++; fputs(" !! [KO]", stdout); }
-                else { nok++; fputs(" [OK]", stdout); }
-            } else
-                nok++;
-            fputc('\n', stdout);
-        }
+        test_parser(test, stdout, &nerrors, &nok);
     }
+    y0parsedestroy();
+    y1parsedestroy();
+    y2parsedestroy();
 #   endif
 
     fprintf(stdout, "\n** %u error(s) (%d tests)\n", nerrors, nerrors + nok);
     return nerrors;
 }
+
+#if BUILD_LEX && BUILD_YACC
+static bool test_parser(const parse_test_t * test, FILE * out, unsigned int * nerrors, unsigned int * nok) {
+    char            result[4096];
+    void *          presult = result;
+    int             ret;
+
+    if (test == NULL || out == NULL || nerrors == NULL || nok == NULL) {
+        fprintf(stderr, "test_parser: input error: test=%p out=%p err=%p nok=%p\n",
+                (void*)test, (void*)out, (void*)nerrors, (void*)nok);
+        if (nerrors) (*nerrors)++;
+        return false;
+    }
+    fprintf(out, "\n%s\n> ", test->title);
+    if (test->content != NULL && sisprint((const char*)test->content)) {
+        fprintf(out, "%s\n", (const char*)test->content);
+    }
+    if ((ret = test->parsefun((void*)test->content, &result)) != 0) {
+        (*nerrors)++;
+        fprintf(out, "error, <yy>process(): %d\n", ret);
+    } else {
+        char check = CHAR_MIN+4;
+        if (test->lexpected != INT_MAX) {
+            long lresult = *((long*)presult);
+            fprintf(out, "  = %ld", lresult);
+            if (test->lexpected != INT_MIN)
+                check = (lresult == test->lexpected);
+        } else if (test->dexpected != HUGE_VAL) {
+            double dresult = *((double*)presult);
+            fprintf(out, "  = %f", dresult);
+            if (test->dexpected != -HUGE_VAL)
+                check = (dresult == test->dexpected);
+        } else if (test->sexpected != NULL) {
+            strcpy(result+sizeof(result)-4, "...");
+            fprintf(out, "  = %s", result);
+            check = !strcmp(result, test->sexpected);
+        } else {
+            fprintf(out, "  = ???");
+        }
+        if (check != CHAR_MIN+4) {
+            if (!check) { (*nerrors)++; fputs(" !! [KO]", out); }
+            else { (*nok)++; fputs(" [OK]", out); }
+        } else
+            (*nok)++;
+        fputc('\n', out);
+    }
+    return *nerrors == 0;
+}
+#endif // if BUILD_LEX && BUILD_YACC
+

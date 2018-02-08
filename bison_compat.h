@@ -233,12 +233,15 @@ BCOMPAT_DECL_YYPARSE_WRAPPER {
 #  define BCOMPAT_YYPARSESTR        BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsestr)
 #  define BCOMPAT_YYPARSEFILEPTR    BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsefileptr)
 #  define BCOMPAT_YYPARSEBUFFER     BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsebuffer)
+#  define BCOMPAT_YYPARSEDESTROY    BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsedestroy)
 #  define BCOMPAT_YYSCANSTRING      BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, _scan_string)
 #  define BCOMPAT_YYSCANBUFFER      BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, _scan_buffer)
 #  define BCOMPAT_YYIN              BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, in)
 #  define BCOMPAT_YYOUT             BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, out)
 #  define BCOMPAT_YYLLENG           BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, leng)
+#  define BCOMPAT_YYLEXDESTROY      BCOMPAT_EXPAND(BCOMPAT_LEX_YYPREFIX, lex_destroy)
 #  define BCOMPAT_YYFLEXLEXER       BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, FlexLexer)
+int BCOMPAT_YYLEXDESTROY();
 
 #  ifdef BCOMPAT_YYLOCATIONS
 /* yylloc location structure */
@@ -266,8 +269,6 @@ static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename
     std::basic_streambuf<char>* streambuf = NULL;
     std::string *               string = NULL;
     std::istream *              istream = NULL;
-    //std::stringbuf *          fb = NULL;
-    //std::filebuf *            fb = NULL;
     bcompat_yylloc_t *          p_yylloc = NULL;
     int                         yyresult;
 #   ifdef BCOMPAT_YYLOCATIONS
@@ -303,9 +304,11 @@ static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename
             std::filebuf * filebuf = new std::filebuf();
             streambuf = filebuf;
             if (!(filebuf->open(filename, std::ios::in))) {
+                delete filebuf;
                 fprintf(stderr, "Scan error, cannot open file '%s': %s\n", filename, strerror (errno));
                 return -1;
             }
+            istream = new std::istream(filebuf);
         }
     }
 
@@ -379,6 +382,7 @@ static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename
     if ((BCOMPAT_YYIN) != NULL && (BCOMPAT_YYIN) != stdin) {
         fclose(BCOMPAT_YYIN);
     }
+    BCOMPAT_YYLEXDESTROY();
 #   ifdef BCOMPAT_YYLOCATIONS
     if (p_yylloc->filename) {
         free(p_yylloc->filename);
@@ -418,6 +422,13 @@ BCOMPAT_EXPORT int BCOMPAT_YYPARSEBUFFER(char *base, size_t size, void * presult
     return BCOMPAT_YYPARSEALL(base, size, "<buffer>", NULL, presult);
 }
 
+BCOMPAT_EXPORT int BCOMPAT_YYPARSEDESTROY() {
+#ifndef BCOMPAT_LEX_CXX
+    BCOMPAT_YYLEXDESTROY();
+#endif
+    return 0;
+}
+
 # else
 /************************************************************
  * DECLARATIONS FOR OTHER FILES THAN LEX/YACC GENERATED ONES.
@@ -437,7 +448,8 @@ BCOMPAT_EXPORT int BCOMPAT_YYPARSEBUFFER(char *base, size_t size, void * presult
 #  define BCOMPAT_PARSER_DECL(prefix)   BCOMPAT_EXPORT int prefix##parsefile(const char * filename, void * presult); \
                                         BCOMPAT_EXPORT int prefix##parsestr(const char * str, void * presult); \
                                         BCOMPAT_EXPORT int prefix##parsefileptr(FILE * pfile, void * presult); \
-                                        BCOMPAT_EXPORT int prefix##parsebuffer(char * base, size_t size)
+                                        BCOMPAT_EXPORT int prefix##parsebuffer(char * base, size_t size); \
+                                        BCOMPAT_EXPORT int prefix##parsedestroy()
 
 /********************************************************
  * END OF DECLARATIONS.
