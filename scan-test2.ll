@@ -67,7 +67,7 @@ line    [\n\r]
             n = strtod(y1text, &endptr);
             *endptr = *endptr == '.' ? ',' : '.';
         }
-        if (n == -HUGE_VAL || n == HUGE_VAL || errno == ERANGE) {
+        if (errno != 0) {
             v_y1error("scan error, float out of range.");
             yyterminate();
         } else {

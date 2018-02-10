@@ -63,7 +63,7 @@ line    [\n\r]
         long n;
         errno = 0;
         n = strtol(y0text, NULL, 10);
-        if (n < INT_MIN || n > INT_MAX || errno == ERANGE) {
+        if (errno != 0) {
             v_y0error("scan error, integer out of range.");
             yyterminate();
         } else {
