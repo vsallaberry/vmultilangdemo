@@ -87,7 +87,7 @@ extern "C" int cpp_call_for_c(int);
 extern "C" int cpp_cni_call_for_c(int);
 
 /** global running state used by signal handler */
-static sig_atomic_t s_running = 1;
+static volatile sig_atomic_t s_running = 1;
 /** signal handler * /
 static void sig_handler(int sig) {
     if (sig == SIGINT)
@@ -95,9 +95,21 @@ static void sig_handler(int sig) {
 }
 */
 
+static int usage(int ret, int argc, const char *const* argv) {
+    fprintf(ret ? stderr : stdout, "\nUsage: %s [-h] [-s] [-n] [-T]\n"
+#           ifdef APP_INCLUDE_SOURCE
+            "  -s     : show source\n"
+#           endif
+            "  -n     : non interactive mode\n"
+            "  -T     : test mode\n\n", *argv);
+    (void)argc;
+    return ret;
+}
+
 int main(int argc, const char *const* argv) {
     unsigned int    nerrors = 0, nok = 0;
     int             ret;
+    bool            interactive = true;
 
     fprintf(stdout, "%s (%s v%s built on %s, %s from git-rev %s)\n\n",
             *argv, BUILD_APPNAME, APP_VERSION, __DATE__, __TIME__, BUILD_GITREV);
@@ -113,26 +125,40 @@ int main(int argc, const char *const* argv) {
                     "  GCJ        : %s\n"
                     "  CCLD       : %s\n"
                     "  flags      : LEX:%d YACC:%d BISON3:%d JAVAOBJ:%d BIN:%d LIB:%d JAR:%d"
-#                 ifdef BUILD_DEBUG
+#                   ifdef BUILD_DEBUG
                     " DEBUG"
-#                 endif
-#                 ifdef BUILD_TEST
+#                   endif
+#                   ifdef BUILD_TEST
                     " TEST"
-#                 endif
+#                   endif
                     "\n",
                     BUILD_PREFIX, BUILD_SRCPATH, BUILD_FULLGITREV,
                     BUILD_CC_CMD, BUILD_CXX_CMD, BUILD_GCJ_CMD, BUILD_CCLD_CMD,
                     BUILD_LEX, BUILD_YACC, BUILD_BISON3, BUILD_JAVAOBJ, BUILD_BIN, BUILD_LIB, BUILD_JAR);
-    if (argc > 1 && !strcmp(argv[1], "-s")) {
-#     ifdef APP_INCLUDE_SOURCE
-        for (const char *const* line = vmultilangdemo_get_source(); *line; line++) {
-            fprintf(stdout, "%s", *line);
-        }
-#     endif
+
+    for (int i = 1; i < argc; i++) {
+        if (*argv[i] == '-') {
+            for (const char * arg = argv[i] + 1; *arg; arg++) {
+                switch (*arg) {
+                    case 'T': break;
+                    case 'n': interactive = false; break ;
+#                   ifdef APP_INCLUDE_SOURCE
+                    case 's':
+                        for (const char *const* line = vmultilangdemo_get_source(); *line; line++)
+                            fprintf(stdout, "%s", *line);
+                        break ;
+#                   endif
+                    case 'h': return usage(0, argc, argv);
+                    default:  return usage(1, argc, argv);
+                }
+            }
+        } else return usage(2, argc, argv);
     }
 
     // install SIG_INT handler
-    //signal(SIGINT, sig_handler);
+    /*struct sigaction sa; sa.sa_handler = sig_handler; sa.sa_flags=SA_RESTART;
+    sigemptyset(&sa.sa_mask);
+    if (sigaction(SIGINT, &sa, NULL) < 0) perror("sigaction");*/
 
     // Run cpp/c/objc test code
     fprintf(stdout, "\n** running c/cpp/obj sample code\n");
@@ -173,7 +199,8 @@ int main(int argc, const char *const* argv) {
     fprintf(stdout, "\n** Running yacc/lex samples\n");
 
     for (const parse_test_t * test = parse_tests; s_running && test && test->parsefun; test++) {
-        test_parser(test, stdout, &nerrors, &nok);
+        if (interactive || (test->content != NULL && test->content != stdin))
+            test_parser(test, stdout, &nerrors, &nok);
     }
     y0parsedestroy();
     y1parsedestroy();
