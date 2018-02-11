@@ -119,6 +119,7 @@ int main(int argc, const char *const* argv) {
                     "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n");
     fprintf(stdout, "  prefix     : %s\n"
                     "  srcpath    : %s\n"
+                    "  git_remote : %s\n"
                     "  git_full   : %s\n"
                     "  CC         : %s\n"
                     "  CXX        : %s\n"
@@ -132,7 +133,7 @@ int main(int argc, const char *const* argv) {
                     " TEST"
 #                   endif
                     "\n",
-                    BUILD_PREFIX, BUILD_SRCPATH, BUILD_FULLGITREV,
+                    BUILD_PREFIX, BUILD_SRCPATH, BUILD_GITREMOTE, BUILD_GITREVFULL,
                     BUILD_CC_CMD, BUILD_CXX_CMD, BUILD_GCJ_CMD, BUILD_CCLD_CMD,
                     BUILD_LEX, BUILD_YACC, BUILD_BISON3, BUILD_JAVAOBJ, BUILD_BIN, BUILD_LIB, BUILD_JAR);
 
