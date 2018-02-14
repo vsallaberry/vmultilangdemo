@@ -81,7 +81,6 @@ static bool sisprint(const char * s) {
 static bool test_parser(const parse_test_t * test, FILE * out, unsigned int * nerrors, unsigned int * nok);
 #endif // if BUILD_LEX && BUILD_YACC
 
-extern "C" const char *const* vmultilangdemo_get_source();
 extern "C" int m();
 extern "C" int cpp_call_for_c(int);
 extern "C" int cpp_cni_call_for_c(int);
@@ -111,12 +110,13 @@ int main(int argc, const char *const* argv) {
     int             ret;
     bool            interactive = true;
 
-    fprintf(stdout, "%s (%s v%s built on %s, %s from git-rev %s)\n\n",
-            *argv, BUILD_APPNAME, APP_VERSION, __DATE__, __TIME__, BUILD_GITREV);
+    fprintf(stdout, "%s v%s %s (built on %s, %s from git:%s) - %s\n\n",
+            BUILD_APPNAME, APP_VERSION, BUILD_APPRELEASE, __DATE__, __TIME__, BUILD_GITREV, *argv);
 
     fprintf(stdout, "Copyright (C) 2018 Vincent Sallaberry.\n"
-                    "This is free software; see the source for copying conditions.  There is NO\n"
-                    "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n");
+                    "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n" \
+                    "This is free software: you are free to change and redistribute it.\n" \
+                    "There is NO WARRANTY, to the extent permitted by law.\n\n");
     fprintf(stdout, "  prefix     : %s\n"
                     "  srcpath    : %s\n"
                     "  git_remote : %s\n"
