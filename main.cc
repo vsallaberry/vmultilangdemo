@@ -19,6 +19,19 @@
  * -------------------------------------------------------------------------
  * main calling, c, cpp, java, parse (lex c, lex cpp, yacc c, bison java).
  */
+#include "version.h"
+#if BUILD_JAVAOBJ
+# include <gcj/cni.h>
+# include <gcj/array.h>
+# include <java/lang/Exception.h>
+# include <java/lang/NullPointerException.h>
+# include <java/lang/String.h>
+# include <JMain.hh>
+# if BUILD_BISON3
+#  include "Parser.hh"
+# endif
+#endif
+
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
@@ -27,14 +40,6 @@
 #include <cmath>
 #include <csignal>
 #include <ctype.h>
-
-#include "version.h"
-#if BUILD_JAVAOBJ
-# include <gcj/cni.h>
-# if BUILD_BISON3
-#  include "Parser.hh"
-# endif
-#endif
 
 #if BUILD_YACC && BUILD_LEX
 # include "bison_compat.h"
@@ -48,6 +53,7 @@ typedef int (*parsefun_t)(void *, void *);
 typedef struct {
     parsefun_t      parsefun;
     const void *    content; /* content for parsestr, filepath for parsefile, pfile for parsefileptr */
+    int             yyparse_expected; /* expected result of <yy>parse<*>() */
     /* no union specific initializer in c++98 -> inline union */
     long            lexpected; /* put <> INT_MAX to consider output as long, INT_MIN to not test expected */
     double          dexpected; /* put <> HUGE_VAL to consider output as double, -HUGE_VAL to not test expected */
@@ -58,21 +64,26 @@ typedef struct {
 # define Y0_DESC     "simple arithmetic ('1', '2*(-1+3)', ...)."
 # define Y1_DESC     "`exp: float | (exp) | cos(exp);` (eg: '1,0', 'cos(0.0))."
 # define Y2_DESC     "`exp: float | (exp) | sin(exp) | tan(exp);` (eg: '1,0', 'sin(0.0))."
+# define Y0L_DESC    "dummy parser: '1', '2*(-1+3)', ...."
 # define PF(x)  ((parsefun_t)(x))
 static const parse_test_t parse_tests[] = {
-    { PF(y0parsefile),      NULL,               INT_MIN, HUGE_VAL, NULL,    "1.1) enter " Y0_DESC },
-    { PF(y0parsefileptr),   stdin,              INT_MIN, HUGE_VAL, NULL,    "1.2) enter " Y0_DESC },
-    { PF(y1parsefile),      NULL,               INT_MAX, -HUGE_VAL, NULL,   "2.1) enter " Y1_DESC },
-    { PF(y1parsefile),      NULL,               INT_MAX, -HUGE_VAL, NULL,   "2.2) enter " Y1_DESC },
-    { PF(y2parsefile),      NULL,               INT_MAX, -HUGE_VAL, NULL,   "3.1) enter " Y2_DESC },
-    { PF(y2parsefileptr),   stdin,              INT_MAX, -HUGE_VAL, NULL,   "3.2) enter " Y2_DESC },
-    { PF(y0parsestr),       " 2  *(-1+3  )",    4, HUGE_VAL, NULL,          "1.3) [buffer] " Y0_DESC },
-    { PF(y1parsestr),       " cos( 0,0) ",      INT_MAX, 1.0, NULL,         "2.3) [buffer] " Y1_DESC },
-    { PF(y1parsestr),       " 3.14 ",           INT_MAX, 3.14, NULL,        "2.4) [buffer] " Y1_DESC },
-    { PF(y2parsestr),       " sin( 0,0) ",      INT_MAX, 0.0, NULL,         "3.3) [buffer] " Y2_DESC },
-    { PF(y2parsestr),       " 3.14 ",           INT_MAX, 3.14, NULL,        "3.4) [buffer] " Y2_DESC },
-    { PF(y0parsestr),       " -999 % 1000",     -999, HUGE_VAL, NULL,       "1.4) [buffer] " Y0_DESC },
-    { NULL, NULL, 0, 0.0, NULL, NULL },
+    { PF(y0parsefile),      NULL,               0, INT_MIN, HUGE_VAL, NULL,    "1.1) enter " Y0_DESC },
+    { PF(y0parsefileptr),   stdin,              0, INT_MIN, HUGE_VAL, NULL,    "1.2) enter " Y0_DESC },
+    { PF(y1parsefile),      NULL,               0, INT_MAX, -HUGE_VAL, NULL,   "2.1) enter " Y1_DESC },
+    { PF(y1parsefile),      NULL,               0, INT_MAX, -HUGE_VAL, NULL,   "2.2) enter " Y1_DESC },
+    { PF(y2parsefile),      NULL,               0, INT_MAX, -HUGE_VAL, NULL,   "3.1) enter " Y2_DESC },
+    { PF(y2parsefileptr),   stdin,              0, INT_MAX, -HUGE_VAL, NULL,   "3.2) enter " Y2_DESC },
+    { PF(y0parsestr),       " 2  *(-1+3  )",    0, 4, HUGE_VAL, NULL,          "1.3) [buffer] " Y0_DESC },
+    { PF(y1parsestr),       " cos( 0,0) ",      0, INT_MAX, 1.0, NULL,         "2.3) [buffer] " Y1_DESC },
+    { PF(y1parsestr),       " 3.14 ",           0, INT_MAX, 3.14, NULL,        "2.4) [buffer] " Y1_DESC },
+    { PF(y2parsestr),       " sin( 0,0) ",      0, INT_MAX, 0.0, NULL,         "3.3) [buffer] " Y2_DESC },
+    { PF(y2parsestr),       " 3.14 ",           0, INT_MAX, 3.14, NULL,        "3.4) [buffer] " Y2_DESC },
+    { PF(y0parsestr),       " -999 % 1000",     0, -999, HUGE_VAL, NULL,       "1.4) [buffer] " Y0_DESC },
+    { PF(y2parsefile),      ",./,./;:",        -1, INT_MIN, HUGE_VAL, NULL,    "3.5) [file_notfound] " Y2_DESC },
+#   ifdef BUILD_SYS_linux
+    { PF(y0linux_parsestr), " 2  *(-1+3  )",    0, INT_MAX, HUGE_VAL, NULL,    "L.3) [buffer] " Y0L_DESC },
+#   endif
+    { NULL, NULL, 0, 0, 0.0, NULL, NULL },
 };
 static bool sisprint(const char * s) {
     while (*s && isprint(*s)) s++;
@@ -175,11 +186,39 @@ int main(int argc, const char *const* argv) {
     fprintf(stdout, "\n** Starting Java...\n");
     JvCreateJavaVM(NULL);
     JvAttachCurrentThread(NULL, NULL);
+
+    // Create argv
+    JArray < java::lang::String * > * args =
+        (JArray < java::lang::String * > *) JvNewObjectArray(argc, &java::lang::String::class$, NULL);
+    for (int i = 0; i < argc; i++) {
+        java::lang::String * arg = JvNewStringLatin1(argv[i]);
+        elements(args)[i] = arg;
+    }
+    JMain::main(args);
+
+    // Checking Java Exceptions mecanisms
+    // gcj does not support mixing c++ and java exception, then c++ exceptions
+    // cannot be caught in this file, and catch (...) is ignored.
+    try{
+        fprintf(stdout, "+ throwing NullPointerException...\n");
+        JMain::main(NULL); // throw new java::lang::NullPointerException();
+        nerrors++;
+    } catch (java::lang::NullPointerException *e) {
+        fprintf(stderr, "+ caught NullPointerException.\n");
+        nok++;
+    } catch (java::lang::Exception *e) {
+        fprintf(stderr, "! caught java::lang::Exception.\n");
+        nerrors++;
+    }
+
+    // call c/cpp/java cni code
     if ((ret = cpp_cni_call_for_c(0)) != 3) {
         nerrors++;
     } else
         nok++;
     fprintf(stdout, "cpp_cni_call_for_c(0) --> %d\n", ret);
+
+    // call java bison parser
 #   if BUILD_BISON3
     Parser * jparser = new Parser(NULL);
     jparser->setDebugLevel(965);
@@ -188,12 +227,23 @@ int main(int argc, const char *const* argv) {
     if (ret == 965) nok++; else nerrors++;
     try {
         //jparser->parse();
-    } catch (...) {
+    } catch (java::lang::Exception * e) {
         fprintf(stdout, "java exception\n");
+        nerrors++;
     }
 #   endif // if BUILD_BISON3
+
     JvDetachCurrentThread();
 #  endif // if BUILD_JAVAOBJ
+
+    fprintf(stdout, "\n** running c/cpp/obj sample code for second time\n");
+    //m();
+    if ((ret = cpp_call_for_c(0)) != 3) {
+        nerrors++;
+    } else
+        nok++;
+    fprintf(stdout, "cpp_call_for_c(0) --> %d\n", ret);
+
 
     // Run lex/yacc if included in build.
 #   if BUILD_LEX && BUILD_YACC
@@ -228,10 +278,14 @@ static bool test_parser(const parse_test_t * test, FILE * out, unsigned int * ne
     if (test->content != NULL && sisprint((const char*)test->content)) {
         fprintf(out, "%s\n", (const char*)test->content);
     }
-    if ((ret = test->parsefun((void*)test->content, &result)) != 0) {
+    ret = test->parsefun((void*)test->content, &result);
+    if (ret != test->yyparse_expected) {
+        fprintf(out, "error, <yy>process(): %d, expected %d.\n", ret, test->yyparse_expected);
         (*nerrors)++;
-        fprintf(out, "error, <yy>process(): %d\n", ret);
     } else {
+        (*nok)++;
+    }
+    if (ret == 0) {
         char check = CHAR_MIN+4;
         if (test->lexpected != INT_MAX) {
             long lresult = *((long*)presult);
@@ -244,7 +298,7 @@ static bool test_parser(const parse_test_t * test, FILE * out, unsigned int * ne
             if (test->dexpected != -HUGE_VAL)
                 check = (dresult == test->dexpected);
         } else if (test->sexpected != NULL) {
-            strcpy(result+sizeof(result)-4, "...");
+            strncpy(result+sizeof(result)-4, "...", 4);
             fprintf(out, "  = %s", result);
             check = !strcmp(result, test->sexpected);
         } else {
@@ -253,8 +307,7 @@ static bool test_parser(const parse_test_t * test, FILE * out, unsigned int * ne
         if (check != CHAR_MIN+4) {
             if (!check) { (*nerrors)++; fputs(" !! [KO]", out); }
             else { (*nok)++; fputs(" [OK]", out); }
-        } else
-            (*nok)++;
+        }
         fputc('\n', out);
     }
     return *nerrors == 0;

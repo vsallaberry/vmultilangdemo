@@ -17,23 +17,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  * -------------------------------------------------------------------------
- * JMain class with main entry and native method nat_main
+ * demo java class.
  */
-//import Build;
-public class JMain {
-    public static final int JMAIN_VER = 1;
-    public static native int nat_main();
-    public static void main(String[] args) {
-        System.out.println("Hello from java JMain::main");
-        for (String s : args)
-            System.out.println("arg: " + s);
-        System.out.println("  version : " + Build.APP_VERSION);
-        System.out.println("  git     : " + Build.BUILD_GITREV);
-        //nat_main();
-    }
-    public static int jmain(String[] args) {
-        System.out.println("Hello from java JMain::jmain");
-        main(args);
-        return nat_main();
-    }
+package sysdeps;
+public class C_linux {
+    public int i;
 }

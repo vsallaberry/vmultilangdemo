@@ -20,6 +20,7 @@
  * test c++ api called by c
  */
 #include <iostream>
+#include <climits>
 
 #include "version.h"
 
@@ -27,6 +28,22 @@ extern "C" int c_call_for_cpp(int a);
 
 extern "C" int cpp_call_for_c(int a) {
     std::cout << "cpp call for c " << a << std::endl;
+    int sz = (a+1) * 12 - 51 * (a+4);
+    if (a == 0) {
+        //size_t s = ULONG_MAX;
+        //int * p = NULL;
+        try {
+            std::cout << "+ throwing c++ exception..." << std::endl;
+            int * p = new int[sz];
+            // should not be reached
+            a = 12;
+            std::cout << "pointer = " << p << std::endl;
+        } catch (std::bad_alloc) {
+            std::cout << "+ caught std::bad_alloc exception." << std::endl;
+        } catch (...) {
+            std::cout << "+ caught unknown exception." << std::endl;
+        }
+    }
     if (a < 3)
         return c_call_for_cpp(a+1);
     return a;
@@ -42,3 +59,4 @@ extern "C" int cpp_cni_call_for_c(int a) {
     return 0;
 #   endif
 }
+

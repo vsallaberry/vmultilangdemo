@@ -228,6 +228,16 @@ BCOMPAT_DECL_YYPARSE_WRAPPER {
 /* #   pragma message "** generated LEX file" */
 #  endif
 
+/* Workaround against issue seen on ubuntu 12.04 and c++ scanners,
+ * with conflicting declarations of isatty with or without throw() */
+#if defined(__cplusplus) && defined(BCOMPAT_LEX_CXX)
+extern "C" {
+# include <unistd.h>
+inline int wrap_isatty(int fd) { return isatty(fd); }
+# define isatty wrap_isatty
+}
+#endif
+
 #  define BCOMPAT_YYPARSEALL        BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parseall)
 #  define BCOMPAT_YYPARSEFILE       BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsefile)
 #  define BCOMPAT_YYPARSESTR        BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, parsestr)
@@ -243,6 +253,17 @@ BCOMPAT_DECL_YYPARSE_WRAPPER {
 #  define BCOMPAT_YYFLEXLEXER       BCOMPAT_EXPAND(BCOMPAT_YYPREFIX, FlexLexer)
 int BCOMPAT_YYLEXDESTROY();
 
+#  if ! defined(yylex_destroy) && ! defined(BCOMPAT_LEX_CXX) && ! defined (YY_INT_ALIGNED) \
+      && (! defined(YY_FLEX_SUBMINOR_VERSION) || YY_FLEX_MAJOR_VERSION > 2 \
+          || (YY_FLEX_MAJOR_VERSION == 2 && YY_FLEX_MINOR_VERSION > 5))
+int BCOMPAT_YYLEXDESTROY() {
+    if (YY_CURRENT_BUFFER) {
+        yy_delete_buffer(YY_CURRENT_BUFFER);
+    }
+    return 0;
+}
+#  endif /* yylex_destroy() replacement */
+
 #  ifdef BCOMPAT_YYLOCATIONS
 /* yylloc location structure */
 static bcompat_yylloc_t my_yylloc = { INT_MAX, INT_MAX, INT_MAX, INT_MAX, NULL };
@@ -251,7 +272,7 @@ static bcompat_yylloc_t my_yylloc = { INT_MAX, INT_MAX, INT_MAX, INT_MAX, NULL }
         my_yylloc.first_column = my_yylloc.last_column; \
         my_yylloc.last_column+=BCOMPAT_YYLLENG; \
     } while(0);
-#  endif
+#  endif /* ! ifdef BCOMPAT_YYLOCATIONS */
 
 #  ifdef BCOMPAT_LEX_CXX
 #   include <streambuf>
@@ -282,44 +303,54 @@ static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename
         return -1;
     }
 #   endif
-    if (str != NULL) {
-        if (size > 0) {
-            string = new std::string(str, size);
-        } else {
-            string = new std::string(str);
-        }
-        istream = new std::istringstream(*string);
-    } else if (pfile != NULL) {
-#       ifdef BCOMPAT_STDIO_FILEBUF
-        streambuf = new __gnu_cxx::stdio_filebuf<char>(pfile, std::ios::in);
-        istream = new std::istream(streambuf);
-#       else
-        fprintf(stderr, "Scan error, <yyprefix>parsefileptr() not supported on this system, need __gnu_cxx:stdio_filebuf.\n");
-        return -1;
-#       endif
-    } else {
-        if (filename == NULL) {
-            istream = &std::cin;
-        } else {
-            std::filebuf * filebuf = new std::filebuf();
-            streambuf = filebuf;
-            if (!(filebuf->open(filename, std::ios::in))) {
-                delete filebuf;
-                fprintf(stderr, "Scan error, cannot open file '%s': %s\n", filename, strerror (errno));
-                return -1;
+    try {
+        if (str != NULL) {
+            if (size > 0) {
+                string = new std::string(str, size);
+            } else {
+                string = new std::string(str);
             }
-            istream = new std::istream(filebuf);
+            istream = new std::istringstream(*string);
+        } else if (pfile != NULL) {
+#       ifdef BCOMPAT_STDIO_FILEBUF
+            streambuf = new __gnu_cxx::stdio_filebuf<char>(pfile, std::ios::in);
+            istream = new std::istream(streambuf);
+#       else
+            fprintf(stderr, "Scan error, <yyprefix>parsefileptr() not supported on this system, need __gnu_cxx:stdio_filebuf.\n");
+            return -1;
+#       endif
+        } else {
+            if (filename == NULL) {
+                istream = &std::cin;
+            } else {
+                std::filebuf * filebuf = new std::filebuf();
+                streambuf = filebuf;
+                if (!(filebuf->open(filename, std::ios::in))) {
+                    delete filebuf;
+                    fprintf(stderr, "Scan error, cannot open file '%s': %s\n", filename, strerror (errno));
+                    return -1;
+                }
+                istream = new std::istream(filebuf);
+            }
         }
+
+        lexer = new BCOMPAT_YYFLEXLEXER(istream, &std::cerr);
+
+#       ifdef BCOMPAT_YYLOCATIONS
+        if (istream == &std::cin) input_name = "<stdin>";
+        p_yylloc->filename = strdup(input_name ? input_name : "<?>");
+        p_yylloc->first_line = p_yylloc->first_column = p_yylloc->last_line = p_yylloc->last_column = 1;
+#       endif
+
+        /* call the parser */
+        yyresult = BCOMPAT_YYPARSE_WRAPPER(p_yylloc, lexer, presult);
+
+    } catch (...) {
+        fprintf(stderr, "Scan error, cannot allocate resources\n");
+        yyresult = -1;
     }
 
-    lexer = new BCOMPAT_YYFLEXLEXER(istream, &std::cerr);
-
-#   ifdef BCOMPAT_YYLOCATIONS
-    if (istream == &std::cin) input_name = "<stdin>";
-    p_yylloc->filename = strdup(input_name ? input_name : "<?>");
-    p_yylloc->first_line = p_yylloc->first_column = p_yylloc->last_line = p_yylloc->last_column = 1;
-#   endif
-    yyresult = BCOMPAT_YYPARSE_WRAPPER(p_yylloc, lexer, presult);
+    /* cleaning resources */
     if (pfile != NULL && pfile != stdin) {
         fclose(pfile);
     }
@@ -366,12 +397,14 @@ static int BCOMPAT_YYPARSEALL(const char *str, size_t size, const char *filename
         }
     } else if (pfile != NULL) {
         BCOMPAT_YYIN = pfile;
+        YY_NEW_FILE;
     } else {
         BCOMPAT_YYIN = filename ? fopen(filename, "r") : stdin;
         if (!(BCOMPAT_YYIN)) {
             fprintf(stderr, "Scan error, cannot open file '%s': %s\n", filename, strerror (errno));
             return -1;
         }
+        YY_NEW_FILE;
     }
 #   ifdef BCOMPAT_YYLOCATIONS
     if ((BCOMPAT_YYIN) == stdin) input_name = "<stdin>";
