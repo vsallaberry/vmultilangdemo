@@ -14,6 +14,8 @@
 
 NOTE:
 - This is a work in progress, this program is not fully operational yet.
+- Sorry for the disorder in file structure, the goal is to check different
+configurations for file locations.
 
 ## System requirements
 - A somewhat capable compiler (gcc/clang), make (GNU,BSD), sh (sh/bash/ksh)
