@@ -84,8 +84,8 @@ WARN_RELEASE	= -Wall -W -pedantic # -Wno-ignored-attributes -Wno-attributes
 ARCH_RELEASE	= -march=native # -arch i386 -arch x86_64
 OPTI_COMMON	= -pipe -fstack-protector
 OPTI_RELEASE	= -O3 $(OPTI_COMMON)
-INCS_RELEASE	= -idirafter/opt/local/include -idirafter/usr/local/include
-LIBS_RELEASE	= $(SUBLIBS) -lm -Lno/usr/lib -L/opt/local/lib -L/usr/local/lib #-lefence
+INCS_RELEASE	=
+LIBS_RELEASE	= $(SUBLIBS) -lm
 MACROS_RELEASE	=
 WARN_DEBUG	= $(WARN_RELEASE) # -Werror
 ARCH_DEBUG	= $(ARCH_RELEASE)
