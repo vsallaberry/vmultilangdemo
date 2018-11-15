@@ -156,6 +156,7 @@ INSTALL		= install -c -m 0644
 INSTALLBIN	= install -c -m 0755
 INSTALLDIR	= install -c -d -m 0755
 VALGRIND	= valgrind
+VALGRIND_ARGS	= --leak-check=full --track-origins=yes --show-leak-kinds=all -v
 MKTEMP		= mktemp
 NO_STDERR	= 2> /dev/null
 NO_STDOUT	= > /dev/null
@@ -218,9 +219,17 @@ tmp_SRCINC	!= $(cmd_SRCINC)
 tmp_SRCINC	?= $(shell $(cmd_SRCINC))
 SRCINC		:= $(tmp_SRCINC)
 
-# Get Debug mode in build.h
-cmd_RELEASEMODE	= $(GREP) -Eq '^[[:space:]]*\#[[:space:]]*define BUILD_DEBUG([[:space:]]|$$)' \
-				$(BUILDINC) $(NO_STDERR) && echo DEBUG || echo RELEASE
+# Get Debug/Test mode in build.h
+WARN_TEST	= $(WARN_RELEASE)
+OPTI_TEST	= $(OPTI_RELEASE)
+ARCH_TEST	= $(ARCH_RELEASE)
+INCS_TEST	= $(INCS_RELEASE)
+LIBS_TEST	= $(LIBS_RELEASE)
+MACROS_TEST	?= $(MACROS_RELEASE) -D_TEST
+cmd_RELEASEMODE = $(SED) -n -e 's/^[[:space:]]*\#[[:space:]]*define[[:space:]][[:space:]]*BUILD_APPRELEASE[[:space:]]*"\([^"]*\).*/\1/p' \
+       		     $(BUILDINC) $(NO_STDERR) || echo RELEASE
+#cmd_RELEASEMODE	= $(GREP) -Eq '^[[:space:]]*\#[[:space:]]*define BUILD_DEBUG([[:space:]]|$$)'
+#				$(BUILDINC) $(NO_STDERR) && echo DEBUG || echo TEST #RELEASE
 tmp_RELEASEMODE	!= $(cmd_RELEASEMODE)
 tmp_RELEASEMODE	?= $(shell $(cmd_RELEASEMODE))
 RELEASE_MODE	:= $(tmp_RELEASEMODE)
@@ -470,7 +479,7 @@ sys_WARN	= $(WARN_$(SYSDEP_SUF))
 sys_DEBUG	= $(DEBUG_$(SYSDEP_SUF))
 
 ############################################################################################
-# Generic Build Flags, taking care of system specific flags (sys_*)
+# Generic Build Flags
 cmd_CPPFLAGS	= srcpref=; srcdirs=; $(cmd_TESTBSDOBJ) && srcpref="$(.CURDIR:Q)/" && srcdirs="$$srcpref $${srcpref}$(SRCDIR)"; \
 		  sep=; incpref=; incs=; for dir in . $(SRCDIR) $(BUILDDIR) $${srcdirs} : $(INCDIRS); do \
                       test -z "$$sep" -a -n "$$incs" && sep=" " || true; \
@@ -480,7 +489,7 @@ cmd_CPPFLAGS	= srcpref=; srcdirs=; $(cmd_TESTBSDOBJ) && srcpref="$(.CURDIR:Q)/" 
 tmp_CPPFLAGS	!= $(cmd_CPPFLAGS)
 tmp_CPPFLAGS	?= $(shell $(cmd_CPPFLAGS))
 tmp_CPPFLAGS	:= $(tmp_CPPFLAGS)
-CPPFLAGS	:= $(tmp_CPPFLAGS) $(sys_INCS) $(INCS) $(MACROS) -DHAVE_VERSION_H
+CPPFLAGS	:= $(tmp_CPPFLAGS) $(INCS) $(MACROS) -DHAVE_VERSION_H
 FLAGS_COMMON	= $(OPTI) $(WARN) $(ARCH)
 CFLAGS		= -MMD $(FLAGS_C) $(FLAGS_COMMON)
 CXXFLAGS	= -MMD $(FLAGS_CXX) $(FLAGS_COMMON)
@@ -489,7 +498,7 @@ OBJCXXFLAGS	= -MMD $(FLAGS_OBJCXX) $(FLAGS_COMMON)
 JFLAGS		= $(FLAGS_GCJ) $(FLAGS_COMMON) -I$(BUILDDIR)
 JHFLAGS		= -I$(BUILDDIR)
 LIBFORGCJ$(GCJ)	= -lstdc++
-LDFLAGS		= $(ARCH) $(OPTI) $(LIBS) $(sys_LIBS) $(LIBFORGCJ$(CCLD))
+LDFLAGS		= $(ARCH) $(OPTI) $(LIBS) $(LIBFORGCJ$(CCLD))
 ARFLAGS		= r
 LFLAGS		=
 LCXXFLAGS	= $(LFLAGS)
@@ -541,6 +550,7 @@ ALLMAKEFILES	= Makefile
 LICENSE		= LICENSE
 README		= README.md
 CLANGCOMPLETE	= .clang_complete
+VALGRINDSUPP	= .valgrind.supp
 SRCINC_CONTENT	= $(LICENSE) $(README) $(METASRC) $(tmp_SRC) $(tmp_JAVASRC) $(INCLUDES) $(ALLMAKEFILES)
 
 ############################################################################################
@@ -552,6 +562,7 @@ CLEANDIRS	= $(SUBDIRS:=-clean)
 TESTDIRS	= $(SUBDIRS:=-test)
 DEBUGDIRS	= $(SUBDIRS:=-debug)
 DOCDIRS		= $(SUBDIRS:=-doc)
+TESTBUILDDIRS	= $(SUBDIRS:=-test-build)
 
 # RECURSEMAKEARGS, see doc for SUBMODROOTDIR above. When SUBMODROOTDIR is not empty,
 # if the submodule is fetched alone, it will use its own submodules, if it is fetched as a
@@ -593,19 +604,38 @@ distclean: cleanme $(DISTCLEANDIRS)
 	@$(cmd_TESTBSDOBJ) && { del=; for f in $(BIN) $(LIB) $(JAR); do $(TEST) -n "$$f" && del="$$del $(.CURDIR)/$$f"; done; \
 		                for f in $(VERSIONINC) $(README) $(LICENSE); do del="$$del $(.OBJDIR)/$$f"; done; echo "$(RM) $$del"; $(RM) $$del $(NO_STDERR); } || true
 	@$(TEST) "$(BUILDDIR)" != "$(SRCDIR)" && $(RMDIR) `$(FIND) $(BUILDDIR) -type d | $(SORT) -r` $(NO_STDERR) || true
-	@$(PRINTF) "$(NAME): distclean done, debug disabled.\n"
+	@$(PRINTF) "$(NAME): distclean done, debug & test disabled.\n"
 $(DISTCLEANDIRS):
 	@recdir=$(@:-distclean=); rectarget=distclean; $(RECURSEMAKEARGS); cd "$${recdir}" && "$(MAKE)" $${recargs} distclean
 
 # --- debug : set DEBUG flag in build.h and rebuild
 debug: update-$(BUILDINC) $(DEBUGDIRS)
-	@{ $(GREP) -Ev '^[[:space:]]*\#[[:space:]]*define[[:space:]]+(BUILD_DEBUG|BUILD_TEST)([[:space:]]|$$)' $(BUILDINC) $(NO_STDERR); \
-		$(PRINTF) "#define BUILD_DEBUG\n#define BUILD_TEST\n"; } > $(BUILDINC).tmp && $(MV) $(BUILDINC).tmp $(BUILDINC)
-	@$(PRINTF) "$(NAME): debug enabled ('make distclean' to disable it).\n"
-	@$(cmd_TESTBSDOBJ) && cd "$(.CURDIR)" || true; \
-	 $(TEST) -n "$(SUBMODROOTDIR)" && "$(MAKE)" SUBMODROOTDIR="$(SUBMODROOTDIR)" || "$(MAKE)"
+#	@{ $(GREP) -Ev '^[[:space:]]*\#[[:space:]]*define[[:space:]]+(BUILD_DEBUG|BUILD_TEST)([[:space:]]|$$)' $(BUILDINC) $(NO_STDERR);
+#		$(PRINTF) "#define BUILD_DEBUG\n#define BUILD_TEST\n"; } > $(BUILDINC).tmp && $(MV) $(BUILDINC).tmp $(BUILDINC)
+	@if $(TEST) "$(RELEASE_MODE)" '!=' "DEBUG"; then \
+	     { $(SED) -e 's/^\([[:space:]]*\#[[:space:]]*define[[:space:]][[:space:]]*BUILD_APPRELEASE[[:space:]]\).*/\1 "DEBUG"/' \
+	          $(BUILDINC) $(NO_STDERR); } > $(BUILDINC).tmp && $(MV) $(BUILDINC).tmp $(BUILDINC) || true; \
+	     $(PRINTF) "$(NAME): debug enabled ('make distclean' to disable it).\n"; \
+	 fi
+	 @$(cmd_TESTBSDOBJ) && cd "$(.CURDIR)" || true; \
+	  if $(TEST) -n "$(SUBMODROOTDIR)"; then "$(MAKE)" SUBMODROOTDIR="$(SUBMODROOTDIR)"; else "$(MAKE)"; fi
 $(DEBUGDIRS):
 	@recdir=$(@:-debug=); rectarget=debug; $(RECURSEMAKEARGS); cd "$${recdir}" && "$(MAKE)" $${recargs} debug
+
+# --- test-build : set TEST release in build.h and rebuild
+test-build: update-$(BUILDINC) $(TESTBUILDDIRS)
+#	@{ $(GREP) -Ev '^[[:space:]]*\#[[:space:]]*define[[:space:]]+(BUILD_DEBUG|BUILD_TEST)([[:space:]]|$$)' $(BUILDINC) $(NO_STDERR);
+#		$(PRINTF) "#define BUILD_DEBUG\n#define BUILD_TEST\n"; } > $(BUILDINC).tmp && $(MV) $(BUILDINC).tmp $(BUILDINC)
+	@if $(TEST) "$(RELEASE_MODE)" = "RELEASE"; then \
+	     { $(SED) -e 's/^\([[:space:]]*\#[[:space:]]*define[[:space:]][[:space:]]*BUILD_APPRELEASE[[:space:]]\).*/\1 "TEST"/' \
+	          $(BUILDINC) $(NO_STDERR); } > $(BUILDINC).tmp && $(MV) $(BUILDINC).tmp $(BUILDINC) \
+	     && $(PRINTF) "$(NAME): test enabled ('make distclean' to disable it).\n"; \
+	 fi
+	@$(cmd_TESTBSDOBJ) && cd "$(.CURDIR)" || true; \
+	 if $(TEST) -n "$(SUBMODROOTDIR)"; then "$(MAKE)" SUBMODROOTDIR="$(SUBMODROOTDIR)"; else "$(MAKE)"; fi
+$(TESTBUILDDIRS):
+	@recdir=$(@:-test-build=); rectarget=test-build; $(RECURSEMAKEARGS); cd "$${recdir}" && "$(MAKE)" $${recargs} test-build
+
 # Code to disable debug without deleting BUILDINC:
 # @$(GREP) -Ev '^[[:space:]]*\#[[:space:]]*define[[:space:]]+(BUILD_DEBUG|BUILD_TEST)([[:space:]]|$$)' $(BUILDINC) \
 #	    > $(BUILDINC).tmp && $(MV) $(BUILDINC).tmp $(BUILDINC)
@@ -644,14 +674,18 @@ test: all $(TESTDIRS)
 $(TESTDIRS): all
 	@recdir=$(@:-test=); rectarget=test; $(RECURSEMAKEARGS); cd "$${recdir}" && "$(MAKE)" $${recargs} test
 
-# --- build bin&lib ---
+# --- build BIN ---
 $(BIN): $(OBJ) $(SUBLIBS) $(JCNIINC)
 	@if $(cmd_TESTBSDOBJ); then ln -sf "$(.OBJDIR)/`basename $@`" "$(.CURDIR)"; else $(TEST) -L $@ && $(RM) $@ || true; fi
 	$(CCLD) $(OBJ:.class=*.class) $(LDFLAGS) -o $@
 	@$(PRINTF) "$@: build done.\n"
 
+# --- build LIB ---
 $(LIB): $(OBJ) $(SUBLIBS) $(JCNIINC)
 	@if $(cmd_TESTBSDOBJ); then ln -sf "$(.OBJDIR)/`basename $@`" "$(.CURDIR)"; else $(TEST) -L $@ && $(RM) $@ || true; fi
+	@# Workaround for issue on osx 10.11 where object names are changed when replaced,
+	@# which disturbs dsymutil. This allows also to remove objects that are not part anymore of lib.
+	@$(RM) $@
 	$(AR) $(ARFLAGS) $@ $(OBJ:.class=*.class)
 	$(RANLIB) $@
 	@$(PRINTF) "$@: build done.\n"
@@ -1015,25 +1049,85 @@ debug-makefile:
 	 sed -e 's/^\(cmd_[[:space:]0-9a-zA-Z_]*\)=/\1= ls $(NAME)\/\1 || time /' Makefile > Makefile.debug \
 	 && "$(MAKE)" -f Makefile.debug
 
+#$(VALGRINDSUPP):
+#	@$(cmd_TESTBSDOBJ) && $(TEST) -e "$(.CURDIR)/$@" || echo "$(NAME): create $@"
+#	@$(TOUCH) "$@"
+#	@if $(cmd_TESTBSDOBJ); then $(TEST) -e "$(.CURDIR)/$@" || mv "$@" "$(.CURDIR)"; ln -sf "$(.CURDIR)/$@" .; fi
 # Run Valgrind filter output
 valgrind: all
+	@$(RM) -R $(BIN).dSYM
 	@logfile=`$(MKTEMP) ./valgrind_XXXXXX` && $(MV) "$${logfile}" "$${logfile}.log"; logfile="$${logfile}.log"; \
-	 $(VALGRIND) --leak-check=full --log-file="$${logfile}" $(VALGRIND_RUN_PROGRAM) || true; \
-	 $(AWK) '/[0-9]+[[:space:]]+bytes[[:space:]]+/ { block=1; blockignore=0; blockstr=$$0; } \
+	 $(TEST) -e "$(VALGRINDSUPP)" && vgsupp="--suppressions=$(VALGRINDSUPP)" || vgsupp=; \
+	 $(VALGRIND) $(VALGRIND_ARGS) $${vgsupp} --log-file="$${logfile}" $(VALGRIND_RUN_PROGRAM) || true; \
+	 if $(TEST) -z "$(VALGRIND_MEM_IGNORE_PATTERN)"; then cat "$${logfile}"; else \
+ 	     $(AWK) '/([0-9]+[[:space:]]+bytes|[cC]onditional jump|uninitialised value)[[:space:]]+/ { if (block == 0) {block=1; blockignore=0;} } \
 	         //{ \
 	             if (block) { \
-	                 blockstr=blockstr "\n" $$0; \
-	                 if (/$(VALGRIND_MEM_IGNORE_PATTERN)/) blockignore=1; \
+			 if (/$(VALGRIND_MEM_IGNORE_PATTERN)/) {blockignore=1;} else {blockstr=blockstr "\n" $$0}; \
 	             } else { print $$0; } \
 	         } \
-	         /=+[0-9]+=+[[:space:]]*$$/ { \
+		 /^[[:space:]]*=+[0-9]+=+[[:space:]]*$$/ { \
 	             if (block) { \
 	                 if (!blockignore) print blockstr; \
+			 blockstr=""; \
 	                 block=0; \
 	             } \
 	         } \
-	         ' $${logfile} > $${logfile%.log}_filtered.log && cat $${logfile%.log}_filtered.log \
-	 && echo "* valgrind output in $${logfile} and $${logfile%.log}_filtered.log (will be deleted by 'make distclean')"
+	         ' $${logfile} > $${logfile%.log}_filtered.log && cat $${logfile%.log}_filtered.log; \
+	 fi && echo "* valgrind output in $${logfile} and $${logfile%.log}_filtered.log (will be deleted by 'make distclean')"
+
+help:
+	@$(PRINTF) "%s\n" \
+	  "make <target>" \
+	  "  target: all, file (main.o, bison.c), ...:" \
+	  "  CC           [$(CC)]" \
+	  "  CXX          [$(CXX)]" \
+	  "  OBJC         [$(OBJC)]" \
+	  "  GCJ          [$(GCJ)]" \
+	  "  MACROS       [$(MACROS)]" \
+	  "  OPTI         [$(OPTI)]" \
+	  "  WARN         [$(WARN)]" \
+	  "  ARCH         [$(ARCH)]" \
+	  "  INCS         [$(INCS)]" \
+	  "  INCDIRS      [$(INCDIRS)]" \
+	  "  LIBS         [$(LIBS)]" \
+	  "  FLAGS_C      [$(FLAGS_C)]" \
+	  "  FLAGS_CXX    [$(FLAGS_CXX)]" \
+	  "  FLAGS_OBJC   [$(FLAGS_OBJC)]" \
+	  "  FLAGS_GCJ    [$(FLAGS_GCJ)]" \
+	  "  ..." \
+	  "" \
+  	  "make info" \
+	  "  display makefile variables" \
+	  "" \
+	  "make debug" \
+	  "  enable debug compile flags and rebuild" \
+	  "" \
+	  "make valgrind" \
+	  "  run valgrind with:" \
+	  "   VALGRIND                    [$(VALGRIND)]" \
+	  "   VALGRIND_ARGS               [$(VALGRIND_ARGS)]" \
+	  "   VALGRIND_RUN_PROGRAM        [$(VALGRIND_RUN_PROGRAM)]" \
+	  "   VALGRIND_MEM_IGNORE_PATTERN [$(VALGRIND_MEM_IGNORE_PATTERN)]" \
+	  "   VALGRINDSUPP                [$(VALGRINDSUPP)]" \
+	  "" \
+	  "make merge-makefile" \
+	  "  merge the common part of Makefile with SUBDIRS:" \
+	  "   SUBDIRS [$(SUBDIRS)]" \
+	  "" \
+	  "make install" \
+	  "  PREFIX         [$(PREFIX)]" \
+	  "  INSTALL_FILES  [$(INSTALL_FILES)]" \
+	  "" \
+	  "make test"; \
+	  $(PRINTF) "  TEST_RUN_PROGRAM  ["'$(TEST_RUN_PROGRAM:S/'/'"'"'/g)$(subst ','"'"',$(TEST_RUN_PROGRAM))]\n'; \
+	$(PRINTF) "%s\n" \
+	  "" \
+	  "make .gitignore" \
+	  "" \
+	  "make dist" \
+	  "  DISTDIR          [ $(DISTDIR) ]" \
+	  ""
 
 info:
 	@$(PRINTF) "%s\n" \
@@ -1095,8 +1189,9 @@ rinfo: info
 .PHONY: subdirs $(CLEANDIRS)
 .PHONY: subdirs $(DISTCLEANDIRS)
 .PHONY: subdirs $(DEBUGDIRS)
+.PHONY: subdirs $(TESTBUILDDIRS)
 .PHONY: subdirs $(DOCDIRS)
 .PHONY: default_rule all build_all cleanme clean distclean dist test info rinfo \
 	doc installme install debug gentags update-$(BUILDINC) create-$(BUILDINC) \
-	.gitignore merge-makefile debug-makefile valgrind
+	.gitignore merge-makefile debug-makefile valgrind help test-build
 
