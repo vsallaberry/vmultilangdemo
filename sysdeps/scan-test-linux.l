@@ -1,6 +1,6 @@
 %{
 /*
- * Copyright (C) 2018 Vincent Sallaberry
+ * Copyright (C) 2018-2019 Vincent Sallaberry
  * vmultilangdemo <https://github.com/vsallaberry/vmultilangdemo>
  *
  * This program is free software; you can redistribute it and/or modify

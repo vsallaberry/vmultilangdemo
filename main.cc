@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Vincent Sallaberry
+ * Copyright (C) 2018-2019 Vincent Sallaberry
  * vmultilangdemo <https://github.com/vsallaberry/vmultilangdemo>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -124,7 +124,7 @@ int main(int argc, const char *const* argv) {
     fprintf(stdout, "%s v%s %s (built on %s, %s from git:%s) - %s\n\n",
             BUILD_APPNAME, APP_VERSION, BUILD_APPRELEASE, __DATE__, __TIME__, BUILD_GITREV, *argv);
 
-    fprintf(stdout, "Copyright (C) 2018 Vincent Sallaberry.\n"
+    fprintf(stdout, "Copyright (C) 2018-2019 Vincent Sallaberry.\n"
                     "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n" \
                     "This is free software: you are free to change and redistribute it.\n" \
                     "There is NO WARRANTY, to the extent permitted by law.\n\n");
