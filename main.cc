@@ -156,8 +156,7 @@ int main(int argc, const char *const* argv) {
                     case 'n': interactive = false; break ;
 #                   ifdef APP_INCLUDE_SOURCE
                     case 's':
-                        for (const char *const* line = vmultilangdemo_get_source(); *line; line++)
-                            fprintf(stdout, "%s", *line);
+                        vmultilangdemo_get_source(stdout, NULL, 0, NULL);
                         break ;
 #                   endif
                     case 'h': return usage(0, argc, argv);
