@@ -157,6 +157,7 @@ int main(int argc, const char *const* argv) {
 #                   ifdef APP_INCLUDE_SOURCE
                     case 's':
                         vmultilangdemo_get_source(stdout, NULL, 0, NULL);
+                        return 0;
                         break ;
 #                   endif
                     case 'h': return usage(0, argc, argv);
