@@ -22,7 +22,7 @@
 public class JCni {
     public static final int JCNI_VER = 1;
     public int jcni() {
-        System.out.println("Hello from java JCni::jcni");
+        System.out.println("  + [JCni::jcni] Hello from java JCni::jcni");
         return JMain.jmain(new String[] { "arg0", "arg1" });
     }
 }

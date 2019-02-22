@@ -23,7 +23,7 @@
 int cpp_call_for_c(int a);
 
 int c_call_for_cpp(int a) {
-    fprintf(stdout, "c call for cpp %d\n", a);
+    fprintf(stdout, "  + [%s] %s(): c call for cpp, input:%d\n", __FILE__, __func__, a);
     if (a < 3)
         return cpp_call_for_c(a+1);
     return a;

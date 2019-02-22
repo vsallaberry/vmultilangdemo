@@ -24,16 +24,17 @@ public class JMain {
     public static final int JMAIN_VER = 1;
     public static native int nat_main();
     public static void main(String[] args) {
-        System.out.println("Hello from java JMain::main");
+        System.out.println("  + [JMain::main] Hello from java JMain::main");
         for (String s : args)
-            System.out.println("arg: " + s);
-        System.out.println("  version : " + Build.APP_VERSION);
-        System.out.println("  git     : " + Build.BUILD_GITREV);
+            System.out.println("  + [JMain::main]  arg: " + s);
+        System.out.println("  + [JMain::main]  version : " + Build.APP_VERSION);
+        System.out.println("  + [JMain::main]  git     : " + Build.BUILD_GITREV);
         //nat_main();
     }
     public static int jmain(String[] args) {
-        System.out.println("Hello from java JMain::jmain");
+        System.out.println("  + [JMain::jmain] Hello from java JMain::jmain");
         main(args);
+        System.out.println("  + [JMain::jmain] calling nat_main()");
         return nat_main();
     }
 }

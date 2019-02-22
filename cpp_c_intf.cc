@@ -27,21 +27,21 @@
 extern "C" int c_call_for_cpp(int a);
 
 extern "C" int cpp_call_for_c(int a) {
-    std::cout << "cpp call for c " << a << std::endl;
+    std::cout << "  + [" << __FILE__ << "] cpp call for c " << a << std::endl;
     int sz = (a+1) * 12 - 51 * (a+4);
     if (a == 0) {
         //size_t s = ULONG_MAX;
         //int * p = NULL;
         try {
-            std::cout << "+ throwing c++ exception..." << std::endl;
+            std::cout << "  + [" << __FILE__ << "] throwing c++ exception..." << std::endl;
             int * p = new int[sz];
             // should not be reached
             a = 12;
-            std::cout << "pointer = " << p << std::endl;
+            std::cout << "  + [" << __FILE__ << "] pointer = " << p << std::endl;
         } catch (std::bad_alloc) {
-            std::cout << "+ caught std::bad_alloc exception." << std::endl;
+            std::cout << "  + [" << __FILE__ << "] caught std::bad_alloc exception." << std::endl;
         } catch (...) {
-            std::cout << "+ caught unknown exception." << std::endl;
+            std::cout << "  + [" << __FILE__ << "] caught unknown exception." << std::endl;
         }
     }
     if (a < 3)
@@ -51,7 +51,7 @@ extern "C" int cpp_call_for_c(int a) {
 
 extern "C" int jcni();
 extern "C" int cpp_cni_call_for_c(int a) {
-    std::cout << "cpp cni call for c " << a << std::endl;
+    std::cout << "  + [" << __FILE__ << "] cpp cni call for c input:" << a << std::endl;
     //call JCni java cni interface
 #   if BUILD_JAVAOBJ
     return jcni();

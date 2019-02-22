@@ -41,7 +41,7 @@ extern "C" int cpp_call_for_c(int);
 extern "Java" jint JMain::nat_main() {
     /*void JMain_nat_1main (void*, void*);
     JMain_nat_1main(NULL, NULL);*/
-    std::cout << "hello from cni native JMain::nat_main()" << std::endl;
+    std::cout << "  + [" << __FILE__ << "] hello from cni native JMain::nat_main()" << std::endl;
     return cpp_call_for_c(0); // call c++ utility.
 }
 #endif

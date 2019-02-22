@@ -173,17 +173,17 @@ int main(int argc, const char *const* argv) {
     if (sigaction(SIGINT, &sa, NULL) < 0) perror("sigaction");*/
 
     // Run cpp/c/objc test code
-    fprintf(stdout, "\n** running c/cpp/obj sample code\n");
+    fprintf(stdout, "\n[%s] ** running c/cpp/objc sample code\n", __FILE__);
     //m();
     if ((ret = cpp_call_for_c(0)) != 3) {
         nerrors++;
     } else
         nok++;
-    fprintf(stdout, "cpp_call_for_c(0) --> %d\n", ret);
+    fprintf(stdout, "[%s] cpp_call_for_c(0) --> %d\n", __FILE__, ret);
 
     // Run Java Code if included in build
 #  if BUILD_JAVAOBJ
-    fprintf(stdout, "\n** Starting Java...\n");
+    fprintf(stdout, "\n[%s] ** Starting Java...\n", __FILE__);
     JvCreateJavaVM(NULL);
     JvAttachCurrentThread(NULL, NULL);
 
@@ -200,14 +200,14 @@ int main(int argc, const char *const* argv) {
     // gcj does not support mixing c++ and java exception, then c++ exceptions
     // cannot be caught in this file, and catch (...) is ignored.
     try{
-        fprintf(stdout, "+ throwing NullPointerException...\n");
+        fprintf(stdout, "[%s] throwing NullPointerException...\n", __FILE__);
         JMain::main(NULL); // throw new java::lang::NullPointerException();
         nerrors++;
     } catch (java::lang::NullPointerException *e) {
-        fprintf(stderr, "+ caught NullPointerException.\n");
+        fprintf(stdout, "[%s] OK: caught NullPointerException.\n", __FILE__);
         nok++;
     } catch (java::lang::Exception *e) {
-        fprintf(stderr, "! caught java::lang::Exception.\n");
+        fprintf(stdout, "[%s] !! caught java::lang::Exception.\n", __FILE__);
         nerrors++;
     }
 
@@ -216,19 +216,19 @@ int main(int argc, const char *const* argv) {
         nerrors++;
     } else
         nok++;
-    fprintf(stdout, "cpp_cni_call_for_c(0) --> %d\n", ret);
+    fprintf(stdout, "[%s] cpp_cni_call_for_c(0) --> %d\n", __FILE__, ret);
 
     // call java bison parser
 #   if BUILD_BISON3
     Parser * jparser = new Parser(NULL);
     jparser->setDebugLevel(965);
     ret = (int) jparser->getDebugLevel();
-    fprintf(stdout, "javaparser addr:%p debuglevel:%d\n", (void*)jparser, ret);
+    fprintf(stdout, "[%s] javaparser addr:%p debuglevel:%d\n", __FILE__, (void*)jparser, ret);
     if (ret == 965) nok++; else nerrors++;
     try {
         //jparser->parse();
     } catch (java::lang::Exception * e) {
-        fprintf(stdout, "java exception\n");
+        fprintf(stdout, "[%s] java exception\n", __FILE__);
         nerrors++;
     }
 #   endif // if BUILD_BISON3
@@ -236,18 +236,18 @@ int main(int argc, const char *const* argv) {
     JvDetachCurrentThread();
 #  endif // if BUILD_JAVAOBJ
 
-    fprintf(stdout, "\n** running c/cpp/obj sample code for second time\n");
+    fprintf(stdout, "\n[%s] ** running c/cpp/obj sample code for second time\n", __FILE__);
     //m();
     if ((ret = cpp_call_for_c(0)) != 3) {
         nerrors++;
     } else
         nok++;
-    fprintf(stdout, "cpp_call_for_c(0) --> %d\n", ret);
+    fprintf(stdout, "[%s] cpp_call_for_c(0) --> %d\n", __FILE__, ret);
 
 
     // Run lex/yacc if included in build.
 #   if BUILD_LEX && BUILD_YACC
-    fprintf(stdout, "\n** Running yacc/lex samples\n");
+    fprintf(stdout, "\n[%s] ** Running yacc/lex samples\n", __FILE__);
 
     for (const parse_test_t * test = parse_tests; s_running && test && test->parsefun; test++) {
         if (interactive || (test->content != NULL && test->content != stdin))
@@ -258,7 +258,7 @@ int main(int argc, const char *const* argv) {
     y2parsedestroy();
 #   endif
 
-    fprintf(stdout, "\n** %u error(s) (%d tests)\n", nerrors, nerrors + nok);
+    fprintf(stdout, "\n[%s] ** %u error(s) (%d tests)\n", __FILE__, nerrors, nerrors + nok);
     return nerrors;
 }
 
@@ -269,7 +269,7 @@ static bool test_parser(const parse_test_t * test, FILE * out, unsigned int * ne
     int             ret;
 
     if (test == NULL || out == NULL || nerrors == NULL || nok == NULL) {
-        fprintf(stderr, "test_parser: input error: test=%p out=%p err=%p nok=%p\n",
+        fprintf(stdout, "test_parser: input error: test=%p out=%p err=%p nok=%p\n",
                 (void*)test, (void*)out, (void*)nerrors, (void*)nok);
         if (nerrors) (*nerrors)++;
         return false;
