@@ -95,6 +95,9 @@ static bool test_parser(const parse_test_t * test, FILE * out, unsigned int * ne
 extern "C" int m();
 extern "C" int cpp_call_for_c(int);
 extern "C" int cpp_cni_call_for_c(int);
+extern "C" int ada_call_for_c(int);
+extern "C" void adainit();
+extern "C" void adafinal();
 
 /** global running state used by signal handler */
 static volatile sig_atomic_t s_running = 1;
@@ -180,6 +183,20 @@ int main(int argc, const char *const* argv) {
     } else
         nok++;
     fprintf(stdout, "[%s] cpp_call_for_c(0) --> %d\n", __FILE__, ret);
+#  ifdef BUILD_GNAT
+    fprintf(stdout, "\n[%s] ** running ada sample code\n", __FILE__);
+    /* start of ADA calls */
+    adainit();
+    if ((ret = ada_call_for_c(2005)) != 2005 * 2005 - 1) {
+        nerrors++;
+        fprintf(stdout, "[%s] ada_call_for_c(): wrong result %d, expected %d\n",
+                __FILE__, ret, 2005*2005 - 1);
+    } else
+        nok++;
+    fprintf(stdout, "[%s] ada_call_for_c(2005) --> %d\n", __FILE__, ret);
+    /* end of ADA calls */
+    adafinal();
+#  endif
 
     // Run Java Code if included in build
 #  if BUILD_JAVAOBJ
