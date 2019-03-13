@@ -79,19 +79,20 @@ PREFIX		= /usr/local
 INSTALL_FILES	= $(BIN)
 
 # CONFIG_CHECK = all zlib ncurses libcrypto applecrypto openssl sigqueue sigrtmin
-#                libcrypt crypt.h crypt_gnu crypt_des_ext
+#                libcrypt crypt.h crypt_gnu crypt_des_ext libintl
 # If a feature is prefixed with '+' (eg: +openssl), this makes it MANDATORY
 # and make will fail if the feature is not available
 CONFIG_CHECK  = zlib
 
-# Project specific Flags (system specific flags are handled further)
-# Choice between <flag>_RELEASE/_DEBUG is done according to BUILDINC / make debug
+# Project specific Flags (system specific flags are set in $(sys_{LIBS,WARN,INCS,OPTI,DEBUG})
+# if you set LIBS_<system>, or similar. They are added here to make you control the order of arguments).
+# Choice between <flag>_RELEASE/_DEBUG/_TEST is done according to BUILDINC / make debug / make test
 WARN_RELEASE	= -Wall -W -pedantic $(sys_WARN)
 ARCH_RELEASE	= -march=native
 OPTI_COMMON	= -pipe -fstack-protector $(sys_OPTI)
 OPTI_RELEASE	= -O3 $(OPTI_COMMON)
 INCS_RELEASE	= $(sys_INCS)
-LIBS_RELEASE	= $(SUBLIBS) $(sys_LIBS) -lm -$(CONFIG_ZLIB)
+LIBS_RELEASE	= $(SUBLIBS) $(sys_LIBS) -lm $(CONFIG_ZLIB)
 MACROS_RELEASE	=
 WARN_DEBUG	= $(WARN_RELEASE)
 ARCH_DEBUG	= $(ARCH_RELEASE)
@@ -128,7 +129,7 @@ VALGRIND_RUN	= ./$(BIN)
 VALGRIND_MEM_IGNORE_PATTERN = __CFInitialize|_objc_init|objc_msgSend|_NSInitializePlatform
 # CHECK_RUN: what to run with 'make check' (eg: 'true', './test.sh $(BIN)', './$(BIN) --test'
 #   if tests are only built with macro _TEST, you can insert 'make debug' or 'make test'
-CHECK_RUN	= ./$(BIN) -n
+CHECK_RUN	= set -x || true; ./$(BIN) -n
 
 ############################################################################################
 # GENERIC PART - in most cases no need to change anything below until end of file

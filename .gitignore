@@ -4,6 +4,7 @@
 *~
 .*.sw?
 /.clang_complete
+/.configmake-recursion
 /A.hh
 /B.hh
 /Build.java
@@ -19,8 +20,9 @@
 /_src_.c
 /_src_.z.c
 /build.h
-/build.make
-/configure.log
+/config.h
+/config.log
+/config.make
 /core
 /core.[0-9]*[0-9]
 /javapkg/PackClass.hh
