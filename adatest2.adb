@@ -25,12 +25,12 @@ use  ADA.Integer_Text_IO;
 with GNAT.Source_Info;
 
 package body AdaTest2 is
-    function AdaTest2_Fun return Integer is
+    function AdaTest2_Fun(i : in Integer) return Integer is
         value : Integer;
     begin
         Put_Line("    + [" & GNAT.Source_Info.Source_Location & "] Hello from ada2");
-        value := AdaTest2_C_Util;
-        Put("    + " & GNAT.Source_Info.Source_Location & "] ada2: c_util result:");
+        value := AdaTest2_C_Util(i);
+        Put("    + [" & GNAT.Source_Info.Source_Location & "] ada2: c_util result:");
         Put(value);
         Put_Line("");
         return value;
