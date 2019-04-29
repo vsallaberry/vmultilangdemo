@@ -16,9 +16,12 @@
 -- with this program; if not, write to the Free Software Foundation, Inc.,
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 -- ----------------------------------------------------------------------
--- ada AdaTest Procedure declaration
---   + called by C (Export AdaTest)
+-- ada AdaMainCCMain c++ cc_main() import interface.
 --
-procedure AdaTest;
-pragma Export(C, AdaTest, "ada_adatest");
+--with Interfaces.C; use Interfaces.C;
+with System;
+package AdaMain_CCMain is
+    procedure cc_main(argc : in Integer; argv : System.Address);
+    pragma Import(C, cc_main, "cc_main");
+end AdaMain_CCMain;
 

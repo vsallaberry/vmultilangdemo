@@ -10,7 +10,7 @@
 
 ## Overview
 **vmultilangdemo** is a multiple language/meta-language demo program
-(c/c++/java/objc/bison/flex).
+(c/c++/java/objc/ada/bison/flex).
 
 NOTE:
 - This is a work in progress, this program is not fully operational yet.
@@ -21,14 +21,17 @@ configurations for file locations.
 - A somewhat capable compiler (gcc/clang), make (GNU,BSD), sh (sh/bash/ksh)
   and coreutils (awk,grep,sed,date,touch,head,printf,which,find,test,...)
 - For native java features: need bison >=3, gcj, gcc, g++.
+- For ada: gcc with gnat support (gnat). When using ada(gccgnat) and java(gcj), it is
+  recommended to have the same gcc supporting both gcj and gnat, but it can work sometimes
+  with different gcj and gnat.
 
 This is not an exhaustive list but the list of systems on which it has been built:
 - Linux slitaz 4 2.6.37 (without flex,yacc,bison3,java)
-- Linux ubuntu 12.04 3.11.0 (without bison3, with 'apt-get install gcj')
-- Linux debian9 (with 'apt-get install gcj-6')
-- OSX 10.11.6  (with gcc/g++/gcj v6 and bison v3)
-- OpenBSD 5.5 except java and bison3.
-- FreeBSD 11.1 except java and bison3.
+- Linux ubuntu 12.04 3.11.0 (without bison3, with 'apt-get install gcj gnat')
+- Linux debian9 (with 'apt-get install gcj-6 gnat-6')
+- OSX 10.11.6  (with gcc/g++/gcj/gnat v6 and bison v3)
+- OpenBSD 5.5 except java, ada and bison3.
+- FreeBSD 11.1 except java, ada and bison3.
 
 ## Compilation
 
@@ -59,6 +62,14 @@ To See how make understood the Makefile, you can type:
 
 When making without version.h created (not the case for this repo), some old
 bsd make can stop. Just type again '$ make' and it will be fine.  
+
+### Foreign main routine
+Makefile supports main() written in java or ada.  
+For that, fill the FOREIGN\_MAIN variable in gead of Makefile with the full path
+of source file containing main; here: 'adamain.adb' or 'JMain.java'.
+- The Java main file must be a class containing 'public static void main(String[] args)'.
+- The Ada main file must be a single procedure without arguments (no package).
+When FOREIGN\_MAIN is empty, the linker will look for main() symbol (c,c++,objc\*).
 
 ### Using git submodules
 When your project uses git submodules, it is a good idea to group

@@ -119,13 +119,22 @@ static int usage(int ret, int argc, const char *const* argv) {
     return ret;
 }
 
-int main(int argc, const char *const* argv) {
+#if defined(BUILD_FOREIGN_MAIN) && BUILD_FOREIGN_MAIN
+extern "C" int cc_main
+#else
+extern "C" int cc_main(int, const char *const*) {
+    std::cerr << __func__ << "(): error, should not be reached" << std::endl;
+    return -1;
+}
+int main
+#endif
+ (int argc, const char *const* argv) {
     unsigned int    nerrors = 0, nok = 0;
     int             ret;
     bool            interactive = true;
 
     fprintf(stdout, "%s v%s %s (built on %s, %s from git:%s) - %s\n\n",
-            BUILD_APPNAME, APP_VERSION, BUILD_APPRELEASE, __DATE__, __TIME__, BUILD_GITREV, *argv);
+            BUILD_APPNAME, APP_VERSION, BUILD_APPRELEASE, __DATE__, __TIME__, BUILD_GITREV, argv ? *argv : "<null>");
 
     fprintf(stdout, "Copyright (C) 2018-2019 Vincent Sallaberry.\n"
                     "License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.\n" \
@@ -138,8 +147,9 @@ int main(int argc, const char *const* argv) {
                     "  CC         : %s\n"
                     "  CXX        : %s\n"
                     "  GCJ        : %s\n"
+                    "  GNATC      : %s\n"
                     "  CCLD       : %s\n"
-                    "  flags      : LEX:%d YACC:%d BISON3:%d JAVAOBJ:%d BIN:%d LIB:%d JAR:%d"
+                    "  flags      : LEX:%d YACC:%d BISON3:%d JAVAOBJ:%d GNAT:%d BIN:%d LIB:%d JAR:%d FOREIGN_MAIN:%d"
 #                   ifdef BUILD_DEBUG
                     " DEBUG"
 #                   endif
@@ -148,8 +158,8 @@ int main(int argc, const char *const* argv) {
 #                   endif
                     "\n",
                     BUILD_PREFIX, BUILD_SRCPATH, BUILD_GITREMOTE, BUILD_GITREVFULL,
-                    BUILD_CC_CMD, BUILD_CXX_CMD, BUILD_GCJ_CMD, BUILD_CCLD_CMD,
-                    BUILD_LEX, BUILD_YACC, BUILD_BISON3, BUILD_JAVAOBJ, BUILD_BIN, BUILD_LIB, BUILD_JAR);
+                    BUILD_CC_CMD, BUILD_CXX_CMD, BUILD_GCJ_CMD, BUILD_GNATC_CMD, BUILD_CCLD_CMD,
+                    BUILD_LEX, BUILD_YACC, BUILD_BISON3, BUILD_JAVAOBJ, BUILD_GNAT, BUILD_BIN, BUILD_LIB, BUILD_JAR, BUILD_FOREIGN_MAIN);
 
     for (int i = 1; i < argc; i++) {
         if (*argv[i] == '-') {
@@ -183,7 +193,7 @@ int main(int argc, const char *const* argv) {
     } else
         nok++;
     fprintf(stdout, "[%s] cpp_call_for_c(0) --> %d\n", __FILE__, ret);
-#  ifdef BUILD_GNAT
+#  if BUILD_GNAT
     fprintf(stdout, "\n[%s] ** running ada sample code\n", __FILE__);
     /* start of ADA calls */
     adainit();
@@ -211,14 +221,14 @@ int main(int argc, const char *const* argv) {
         java::lang::String * arg = JvNewStringLatin1(argv[i]);
         elements(args)[i] = arg;
     }
-    JMain::main(args);
+    JMain::jmain(args);
 
     // Checking Java Exceptions mecanisms
     // gcj does not support mixing c++ and java exception, then c++ exceptions
     // cannot be caught in this file, and catch (...) is ignored.
     try{
         fprintf(stdout, "[%s] throwing NullPointerException...\n", __FILE__);
-        JMain::main(NULL); // throw new java::lang::NullPointerException();
+        JMain::jmain(NULL); // throw new java::lang::NullPointerException();
         nerrors++;
     } catch (java::lang::NullPointerException *e) {
         fprintf(stdout, "[%s] OK: caught NullPointerException.\n", __FILE__);

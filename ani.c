@@ -20,7 +20,7 @@
  * cni gcj java/c++ interface. allows calls java->c++ and c++->java.
  */
 #include "version.h"
-#ifndef BUILD_GNAT
+#if !defined(BUILD_GNAT) || ! BUILD_GNAT
 extern int ___dummy;
 #else
 extern void ada_adatest();

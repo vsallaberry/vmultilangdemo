@@ -16,9 +16,9 @@
 -- with this program; if not, write to the Free Software Foundation, Inc.,
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 -- ----------------------------------------------------------------------
--- ada AdaTest Procedure declaration
---   + called by C (Export AdaTest)
+-- Ada Interface to check compilation of ads files without adb.
 --
-procedure AdaTest;
-pragma Export(C, AdaTest, "ada_adatest");
-
+package Intf is
+    pragma Pure;
+    C : constant Integer := 2;
+end Intf;

@@ -23,17 +23,22 @@
 public class JMain {
     public static final int JMAIN_VER = 1;
     public static native int nat_main();
+    public static native int cc_main(String[] args);
+    private static void main_priv(String[] args) {
+        System.out.println("  + [JMain::main_priv] Hello from java JMain::main_priv");
+        for (String s : args)
+            System.out.println("  + [JMain::main_priv]  arg: " + s);
+        System.out.println("  + [JMain::main_priv]  version : " + Build.APP_VERSION);
+        System.out.println("  + [JMain::main_priv]  git     : " + Build.BUILD_GITREV);
+    }
     public static void main(String[] args) {
         System.out.println("  + [JMain::main] Hello from java JMain::main");
-        for (String s : args)
-            System.out.println("  + [JMain::main]  arg: " + s);
-        System.out.println("  + [JMain::main]  version : " + Build.APP_VERSION);
-        System.out.println("  + [JMain::main]  git     : " + Build.BUILD_GITREV);
-        //nat_main();
+        main_priv(args);
+        cc_main(args);
     }
     public static int jmain(String[] args) {
         System.out.println("  + [JMain::jmain] Hello from java JMain::jmain");
-        main(args);
+        main_priv(args);
         System.out.println("  + [JMain::jmain] calling nat_main()");
         return nat_main();
     }

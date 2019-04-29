@@ -16,9 +16,29 @@
 -- with this program; if not, write to the Free Software Foundation, Inc.,
 -- 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 -- ----------------------------------------------------------------------
--- ada AdaTest Procedure declaration
---   + called by C (Export AdaTest)
+-- ada AdaMain Program.
 --
-procedure AdaTest;
-pragma Export(C, AdaTest, "ada_adatest");
+with    ADA.Text_IO,
+        ADA.Command_line,
+        ADA.Integer_Text_IO,
+        GNAT.Source_info,
+        Interfaces.C,
+        Interfaces.C.Strings,
+        AdaMain_CCMain;
+use     ADA.Text_IO;
+
+procedure AdaMain is
+    c_argc  : constant Integer := ADA.Command_Line.Argument_Count;
+    c_argv  : array(0..c_argc) of Interfaces.C.Strings.chars_ptr;
+begin
+    Put_Line("+ [" & GNAT.Source_Info.Source_Location & "] Hello from ada. Arguments:");
+    c_argv(0) := Interfaces.C.Strings.New_Char_Array(Interfaces.C.To_C("ADAMAIN"));
+    for I in 1..c_argc loop
+        ADA.Text_IO.Put("  ");
+        ADA.Integer_Text_IO.Put(I);
+        ADA.Text_IO.Put_Line(") " & ADA.Command_line.Argument(I));
+        c_argv(I) := Interfaces.C.Strings.New_Char_Array(Interfaces.C.To_C(ADA.Command_line.Argument(I)));
+    end loop;
+    AdaMain_CCMain.cc_main(c_argc + 1, c_argv'address);
+end AdaMain;
 
