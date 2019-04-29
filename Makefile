@@ -71,6 +71,15 @@ BIN		= $(NAME)
 LIB		=
 JAR		=
 
+# FOREIGN_MAIN: if the main() is not a C/OBJC/C++ function (eg: Java or ada),
+#  specify the path of _source_ file containing ADA or JAVA main, eg: FOREIGN_MAIN=src/Main.java
+#  For Java, this file (class) must contain 'public static void main(String[] args)'
+#  For Ada, file with single Procedure outside package, without arguments or pragma export.
+# When FOREIGN_MAIN is not empty, the MACRO BUILD_FOREIGN_MAIN is ON in build.h.
+#FOREIGN_MAIN	= adamain.adb
+#FOREIGN_MAIN	= JMain.java
+FOREIGN_MAIN	=
+
 # DISTDIR: where the dist packages zip/tar.xz are saved
 DISTDIR		= ../../dist
 
@@ -100,12 +109,13 @@ OPTI_DEBUG	= -O0 -g $(OPTI_COMMON)
 INCS_DEBUG	= $(INCS_RELEASE)
 LIBS_DEBUG	= $(LIBS_RELEASE)
 MACROS_DEBUG	= -D_DEBUG -D_TEST
-# FLAGS_<lang> is global for one language (<lang>: C,CXX,OBJC,GCJ,GCJH,OBJCXX,LEX,YACC).
+# FLAGS_<lang> is global for one language (<lang>: C,CXX,OBJC,GCJ,GCJH,OBJCXX,LEX,YACC,ADA).
 FLAGS_C		= -std=c99 -D_GNU_SOURCE
 FLAGS_CXX	= -D_GNU_SOURCE -Wno-variadic-macros
 FLAGS_OBJC	= -std=c99
 FLAGS_OBJCXX	=
 FLAGS_GCJ	=
+FLAGS_ADA	=
 # Some other flags: ARCH(-arch i386 -arch x86_64), WARN(-Werror), OPTI(-gdwarf -g3), ...
 
 # FLAGS_<lang>_<file> is specific to one file (eg:'FLAGS_CXX_Big.cc=-O0','FLAGS_C_src/a.c=-O1')
@@ -118,7 +128,8 @@ FLAGS_GCJ	=
 #  + Comment '*_GNUCXX_XTRA_* = *' lines to use default libc++ and use '#ifdef __GLIBCXX__' in your code.
 FLAGS_GNUCXX_XTRA_darwin_/usr/bin/clangpppp=-stdlib=libstdc++
 LIBS_GNUCXX_XTRA_darwin_/usr/bin/clangpppp=-stdlib=libstdc++
-INCS_darwin	= $(FLAGS_GNUCXX_XTRA_$(UNAME_SYS)_$(CXX:++=pppp))
+FLAGS_CXX	+= $(FLAGS_GNUCXX_XTRA_$(UNAME_SYS)_$(CXX:++=pppp))
+FLAGS_OBJCXX	+= $(FLAGS_GNUCXX_XTRA_$(UNAME_SYS)_$(CXX:++=pppp))
 LIBS_darwin	= -framework IOKit -framework Foundation $(LIBS_GNUCXX_XTRA_$(UNAME_SYS)_$(CXX:++=pppp))
 
 # TESTS and DEBUG parameters
@@ -129,7 +140,9 @@ VALGRIND_RUN	= ./$(BIN)
 VALGRIND_MEM_IGNORE_PATTERN = __CFInitialize|_objc_init|objc_msgSend|_NSInitializePlatform
 # CHECK_RUN: what to run with 'make check' (eg: 'true', './test.sh $(BIN)', './$(BIN) --test'
 #   if tests are only built with macro _TEST, you can insert 'make debug' or 'make test'
-CHECK_RUN	= set -x || true; ./$(BIN) -n
+CHECK_RUN	= check="./$(BIN) -n"; set -x || true; $${check} \
+		  && if $(TEST) -x "$(GCJ)"; then $(MAKE) FOREIGN_MAIN="JMain.java" && $${check}; fi \
+		  && if $(TEST) -x "$(GNAT)"; then $(MAKE) FOREIGN_MAIN="adamain.adb" && $${check}; fi
 
 ############################################################################################
 # GENERIC PART - in most cases no need to change anything below until end of file
