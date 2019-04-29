@@ -141,8 +141,8 @@ VALGRIND_MEM_IGNORE_PATTERN = __CFInitialize|_objc_init|objc_msgSend|_NSInitiali
 # CHECK_RUN: what to run with 'make check' (eg: 'true', './test.sh $(BIN)', './$(BIN) --test'
 #   if tests are only built with macro _TEST, you can insert 'make debug' or 'make test'
 CHECK_RUN	= check="./$(BIN) -n"; set -x || true; $${check} \
-		  && if $(TEST) -x "$(GCJ)"; then $(MAKE) FOREIGN_MAIN="JMain.java" && $${check}; fi \
-		  && if $(TEST) -x "$(GNAT)"; then $(MAKE) FOREIGN_MAIN="adamain.adb" && $${check}; fi
+		  && if $(TEST) -x "$(GNAT)"; then $(MAKE) FOREIGN_MAIN="adamain.adb" && $${check}; fi \
+		  && if $(TEST) -x "$(GCJ)"; then $(MAKE) FOREIGN_MAIN="JMain.java" && $${check}; fi
 
 ############################################################################################
 # GENERIC PART - in most cases no need to change anything below until end of file

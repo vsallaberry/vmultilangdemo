@@ -196,7 +196,9 @@ int main
 #  if BUILD_GNAT
     fprintf(stdout, "\n[%s] ** running ada sample code\n", __FILE__);
     /* start of ADA calls */
+#   if ! BUILD_ADA_MAIN
     adainit();
+#   endif // if ! BUILD_ADA_MAIN
     if ((ret = ada_call_for_c(2005)) != 2005 * 2005 - 1) {
         nerrors++;
         fprintf(stdout, "[%s] ada_call_for_c(): wrong result %d, expected %d\n",
@@ -205,14 +207,18 @@ int main
         nok++;
     fprintf(stdout, "[%s] ada_call_for_c(2005) --> %d\n", __FILE__, ret);
     /* end of ADA calls */
+#   if ! BUILD_ADA_MAIN
     adafinal();
+#   endif // if ! BUILD_ADA_MAIN
 #  endif
 
     // Run Java Code if included in build
 #  if BUILD_JAVAOBJ
+#   if ! BUILD_JAVA_MAIN
     fprintf(stdout, "\n[%s] ** Starting Java...\n", __FILE__);
     JvCreateJavaVM(NULL);
     JvAttachCurrentThread(NULL, NULL);
+#   endif // if ! BUILD_JAVA_MAIN
 
     // Create argv
     JArray < java::lang::String * > * args =
@@ -260,7 +266,9 @@ int main
     }
 #   endif // if BUILD_BISON3
 
+#   if ! BUILD_JAVA_MAIN
     JvDetachCurrentThread();
+#   endif // if BUILD_JAVA_MAIN
 #  endif // if BUILD_JAVAOBJ
 
     fprintf(stdout, "\n[%s] ** running c/cpp/obj sample code for second time\n", __FILE__);

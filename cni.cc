@@ -22,11 +22,14 @@
 #include "version.h"
 #if BUILD_JAVAOBJ
 #include <iostream>
+
 #include <gcj/cni.h>
 #include "JCni.hh"
 #include "JMain.hh"
 
 #include <java/lang/String.h>
+
+#include <cstdlib>
 
 extern "C" int jcni() {
     static JCni *j = new JCni();
