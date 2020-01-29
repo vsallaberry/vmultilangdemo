@@ -1,8 +1,8 @@
 #
-# Copyright (C) 2018-2019 Vincent Sallaberry
+# Copyright (C) 2018-2020 Vincent Sallaberry
 # vmultilangdemo <https://github.com/vsallaberry/vmultilangdemo>
 #
-#   from vlib Makefile Copyright (C) 2017-2019 Vincent Sallaberry
+#   from vlib Makefile Copyright (C) 2017-2020 Vincent Sallaberry
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
