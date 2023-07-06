@@ -15,6 +15,7 @@
 /JMain.hh
 /Parser.hh
 /Parser.java
+/Parser.yyj-cpp
 /X.hh
 /Y.hh
 /Z.hh
@@ -30,13 +31,19 @@
 /obj/
 /parse-test.c
 /parse-test.h
+/parse-test.y-cpp
 /parse-test2.cc
 /parse-test2.hh
+/parse-test2.yy-cpp
 /parse-test3.cc
 /parse-test3.hh
+/parse-test3.yy-cpp
 /scan-test.c
+/scan-test.l-cpp
 /scan-test2.cc
+/scan-test2.ll-cpp
 /scan-test3.cc
+/scan-test3.ll-cpp
 /valgrind_*.log
 /vmultilangdemo
 /vmultilangdemo.core
