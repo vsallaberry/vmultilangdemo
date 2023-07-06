@@ -1,8 +1,8 @@
 #
-# Copyright (C) 2018-2020 Vincent Sallaberry
+# Copyright (C) 2018-2020,2023 Vincent Sallaberry
 # vmultilangdemo <https://github.com/vsallaberry/vmultilangdemo>
 #
-#   from vlib Makefile Copyright (C) 2017-2020 Vincent Sallaberry
+#   from vlib Makefile Copyright (C) 2017-2020,2023 Vincent Sallaberry
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -78,7 +78,7 @@ JAR		=
 # When FOREIGN_MAIN is not empty, the MACRO BUILD_FOREIGN_MAIN is ON in build.h.
 #FOREIGN_MAIN	= adamain.adb
 #FOREIGN_MAIN	= JMain.java
-FOREIGN_MAIN	?=
+FOREIGN_MAIN	=
 
 # DISTDIR: where the dist packages zip/tar.xz are saved
 DISTDIR		= ../../dist
