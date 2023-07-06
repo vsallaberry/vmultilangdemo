@@ -20,6 +20,8 @@
  * JMain class with main entry and native method nat_main
  */
 //import Build;
+import java.util.List;
+
 public class JMain {
     public static final int JMAIN_VER = 1;
     public static native int nat_main();
@@ -41,5 +43,14 @@ public class JMain {
         main_priv(args);
         System.out.println("  + [JMain::jmain] calling nat_main()");
         return nat_main();
+    }
+    public static void print(List<Object> list) {
+        if (list == null) {
+            System.out.println(" ! null !");
+            return ;
+        }
+        for (Object obj : list) {
+            System.out.println("  -> " + obj.toString());
+        }
     }
 }

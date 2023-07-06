@@ -1,0 +1,374 @@
+%{
+/*
+ * Copyright (C) 2018-2019,2023 Vincent Sallaberry
+ * vmultilangdemo <https://github.com/vsallaberry/vmultilangdemo>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * -------------------------------------------------------------------------
+ * Test grammar. Bison Java parser design inspired by my VSCSH (not yet published).
+ */
+%}
+%language "Java"
+%name-prefix "Parser"
+%define parser_class_name {Parser}
+%define public
+%locations
+//%debug
+%error-verbose
+
+// Package name and imports for generated parser java class.
+%code imports {
+    import java.io.Reader;
+    import java.io.StringReader;
+    import java.io.IOException;
+    import java.util.LinkedList;
+    import java.util.List;
+    import java.util.Map;
+    import java.util.HashMap;
+
+    import java.io.BufferedReader;
+    import java.io.StreamTokenizer;
+}
+
+// Add useful methods in generated parser java class
+%code {
+    //public class Position extends Object { Position(int l, int c, int t) {} }
+    public static class Exp extends Object {
+        public static Double dbl(Object exp) {
+            try {
+            if (exp instanceof Double)
+                return (Double)exp;
+            else if (exp instanceof Integer)
+                return new Double((Integer)exp);
+            else
+                return new Double(0);
+            } catch (Exception e) {
+                System.out.println(e.toString());
+                return new Double(0);
+            }
+        }
+    }
+	public static List<Object> theExps = null;
+  	public static List<Object> parse (Reader r, String name) throws IOException {
+    	Lexer l = new YYLexer (r, name);
+    	Parser p = new Parser (l);
+    	//p.errorVerbose = true;
+    	if (p.parse ())
+    		return theExps;
+  		else
+  			return null;
+  	}
+    public static List<Object> parse (String s) throws IOException {
+        return parse(new StringReader(s), "string");
+    }
+}
+
+/* Bison Token Declarations */
+%token RE       "~"
+%token EQ   	"=="
+%token ASSIGN	"="
+%token NE		"!="
+%token GT   	">"
+%token LT   	"<"
+%token GE   	">="
+%token LE   	"<="
+%token OR   	"|"
+%token AND   	"&"
+%token PLUS   	"+"
+%token INC      "++"
+%token INCE     "+="
+%token MINUS   	"-"
+%token DEC      "--"
+%token DECE     "-="
+%token TIMES   	"*"
+%token TIMESE   "*="
+%token DIVIDE  	"/"
+%token DIVIDEE  "/="
+%token POW   	"^"
+%token NOT   	"!"
+%token MOD   	"%"
+%token LPAREN  	"("
+%token RPAREN  	")"
+%token LBRACE  	"{"
+%token LBRACKET "["
+%token RBRACE  	"}"
+%token RBRACKET "]"
+%token COMA  	","
+%token SEMI 	";"
+%token LINE 	"\n"
+
+// Special Complexes Tokens are managed by the Lexer.
+// To allow Lexer that is complex token, Don't include their name in declaration
+// or exclude them in the switch-case of method Parser.yyTokens() defined above.
+%token <Double>     FLOAT   //"<float>"
+%token <Integer>	INT 	//"<number>"
+%token <String> 	STRING  //"<string>"
+
+%type  <Object> 			exp
+%type  <List<Object>> 		exps
+
+// Priorities/associativities.
+//%nonassoc		LBRACE
+%nonassoc		RBRACE
+%left			OR
+%left			AND
+%nonassoc		GT LT NE EQ LE GE RE
+//%nonassoc		OF
+%left			MINUS PLUS
+%left			DIVIDE TIMES MOD
+%nonassoc       INC DEC INCE DECE DIVIDEE TIMESE
+%nonassoc		UMINUS
+//%precedence		UMINUS
+%right			POW
+
+/* Grammar follows */
+%start script
+
+%%
+
+script:
+  exps { theExps = $1; }
+;
+
+exps:
+/* empty */ { $$ = new LinkedList<Object>(); }
+| exp { $$ = new LinkedList<Object>(); ((List<Object>)$$).add($1); }
+| exps SEMI exp { $$ = $1; ((List<Object>)$$).add($3); }
+| exps LINE exp	{ $$ = $1; ((List<Object>)$$).add($3); }
+;
+
+exp:
+// Single values
+  STRING					{ $$ = new String($1); }
+| INT                		{ $$ = new Integer($1); }
+| FLOAT                     { $$ = new Double($1); }
+| exp PLUS exp              { $$ = new Double(Exp.dbl($1) + Exp.dbl($3)); }
+| exp MINUS exp             { $$ = new Double(Exp.dbl($1) - Exp.dbl($3)); }
+| exp TIMES exp             { $$ = new Double(Exp.dbl($1) * Exp.dbl($3)); }
+| exp DIVIDE exp            { $$ = new Double(Exp.dbl($1) / Exp.dbl($3)); }
+| LPAREN exp RPAREN         { $$ = $2; }
+;
+
+%%
+class YYLexer extends LexerBase {
+    public YYLexer (Reader r, String name) {
+		super(r, name);
+	}
+}
+class Position extends Object {
+    public int line, token, column;
+    public Position() {
+        line = 0;
+        token = 0;
+        column = 0;
+    }
+    public Position(int l, int c, int t) {
+        line = l;
+        column = c;
+        token = t;
+    }
+    public boolean equals(Position l) { return l.line == line && l.token == token; }
+    public String toString() {
+        return "l" + Integer.toString(line) + ",c" + Integer.toString(column) + " (#" + Integer.toString(token) + ")";
+    }
+}
+abstract class LexerBase implements Parser.Lexer {
+    private Reader          r;
+    private StreamTokenizer st;
+    private String          name;
+
+    public LexerBase(Reader reader, String name) {
+        r = new BufferedReader(reader);
+        st = new StreamTokenizer(r);
+        this.name = name;
+        updateTokenizer();
+    }
+    protected void updateTokenizer() {
+        st.resetSyntax();
+        st.eolIsSignificant(true);  // consider endOfLine
+        st.wordChars('a', 'z');     // wordChar matches Nums, ID, variables, keywords
+        st.wordChars('A', 'Z');
+        st.wordChars('0', '9');
+        st.wordChars('.', '.');
+        //st.whitespaceChars(0, ' ');
+        st.whitespaceChars(0, 0);   // useful to compute correctly the column number
+        st.quoteChar('"');          // quote strings
+        st.quoteChar('\'');
+        //st.commentChar('#');      // comments
+        st.slashSlashComments(false);
+        st.slashStarComments(false);
+    }
+    protected void updatePosition(Position yypos, int column, boolean newLine) {
+        if (newLine) {
+            yypos.line++;
+            yypos.column = 0;
+            yypos.token = 0;
+        } else {
+            yypos.token++;
+            yypos.column = column;
+        }
+    }
+    //@Override // gcj 6.3 on debian says methods does not override. Maybe there is something like @Implementation ?
+    public int yylex() throws IOException {
+        int ttype;
+
+        updatePosition(yypos_start, yypos_end.column + 1, false);
+        while ((ttype = st.nextToken()) <= ' ' && ttype >= 0 && ttype != StreamTokenizer.TT_EOL && ttype != StreamTokenizer.TT_EOF) {
+            ++yypos_start.column;
+            ++yypos_end.column;
+        }
+        updatePosition(yypos_end, yypos_end.column + (st.sval != null ? st.sval.length() : 1), false);
+
+        //System.out.println("lexer [" + yypos_start + "/" + yypos_end + "] token `" + (ttype >= ' ' && ttype < 128 ? (char)ttype : '?')
+        //                   + "` type:" + ttype + (st.sval == null ? "" : (" `" + st.sval + "`")));
+
+        if (ttype == StreamTokenizer.TT_EOF) {
+            return EOF;
+        } else if (ttype == StreamTokenizer.TT_EOL) {
+            updatePosition(yypos_start, 0, true);
+            updatePosition(yypos_end, 0, true);
+            return LINE;
+        } else if (ttype == '"') {
+            yylval = new String(st.sval);
+            return STRING;
+        } else if (ttype == StreamTokenizer.TT_WORD) {
+            String token = st.sval;
+            yylval = new String(token);
+            // Hexadecimal Numbers
+            if (token.matches("0x[0-9a-fA-F]+")) {
+                yylval = new Integer(Integer.parseInt(token.substring(2), 16));
+                return INT;
+            }
+            // Decimal Numbers
+            if (token.matches("[0-9]+")) {
+                yylval = new Integer(Integer.parseInt(token));
+                return INT;
+            }
+            // Floats
+            if (token.matches("[0-9.]+")) {
+                yylval = new Double(Double.parseDouble(token));
+                return FLOAT;
+            }
+            // In any other case: unknown
+            return Parser.YYERROR;
+        } else {
+            int c = st.ttype;
+            int c2;
+            switch (c) {
+            case '&':   return AND;
+            case '~':   return RE;
+            case '=':
+                if (st.nextToken() == '=') { return EQ; }
+                st.pushBack();
+                return ASSIGN;
+            case ',':   return COMA;
+            case '/':
+                if (st.nextToken() == '=') { return DIVIDEE; }
+                st.pushBack();
+                return DIVIDE;
+            case '>':
+                if (st.nextToken() == '=') { return GE; }
+                st.pushBack();
+                return GT;
+            case '{':   return LBRACE;
+            case '[':   return LBRACKET;
+            case '(':   return LPAREN;
+            case '<':
+                if (st.nextToken() == '=') { return LE; }
+                st.pushBack();
+                return LT;
+            case '-':
+                if ((c2 = st.nextToken()) == '-') { return DEC; }
+                if (c2 == '=')                    { return DECE; }
+                st.pushBack();
+                return MINUS;
+            case '%':   return MOD;
+            case '!':
+                if (st.nextToken() == '=') { return NE; }
+                st.pushBack();
+                return NOT;
+            case '|':   return OR;
+            case '+':
+                if ((c2 = st.nextToken()) == '+') { return INC; }
+                if (c2 == '=')                    { return INCE; }
+                st.pushBack();
+                return PLUS;
+            case '^':   return POW;
+            case '}':   return RBRACE;
+            case ']':   return RBRACKET;
+            case ')':   return RPAREN;
+            case ';':   return SEMI;
+            case '*':
+                if (st.nextToken() == '=') { return TIMESE; }
+                st.pushBack();
+                return TIMES;
+            }
+            return st.ttype;
+        }
+    }
+
+    /** current position in Lexer */
+    private Position yypos_start = new Position(1, 0, 0);
+    private Position yypos_end   = new Position(1, 0, 0);
+    private Object   yylval;
+
+    /** get current starting position */
+    //@Override // gcj 6.3 on debian says methods does not override. Maybe there is something like @Implementation ?
+    public Position getStartPos() {
+        return yypos_start;
+    }
+
+    /** get ending current position */
+    //@Override // gcj 6.3 on debian says methods does not override. Maybe there is something like @Implementation ?
+    public Position getEndPos() {
+        return yypos_end;
+    }
+
+    /** get current token */
+    //@Override // gcj 6.3 on debian says methods does not override. Maybe there is something like @Implementation ?
+    public Object getLVal() {
+        return yylval;
+    }
+
+    /** override Parser error display */
+    //@Override // gcj 6.3 on debian says methods does not override. Maybe there is something like @Implementation ?
+    public void yyerror(Parser.Location loc, String s) {
+        int i;
+        int headerSize = 0;
+
+        //System.err.println(loc.begin.line);
+        for (i = 0; i < headerSize; i++)
+            System.err.print(" ");
+        for (i = 1; i < loc.begin.column; i++)
+            System.err.print(" ");
+        System.err.print("^");
+        for (i++; i < loc.end.column; i++)
+            System.err.print(" ");
+        System.err.println((loc.begin.column != loc.end.column ? "^" : ""));
+        System.err.print(name + ": ");
+        System.err.println(loc + ": " + s);
+    }
+}
+/*class YYLexer implements Parser.Lexer {
+  	public ParserLexer (Reader r, String name) {
+		//super(r, name);
+	}
+    public Parser.Position getStartPos () {return null;}
+    public Parser.Position getEndPos () {return null;}
+    public Object getLVal () {return null;}
+    public int yylex () throws java.io.IOException {return 0;}
+    public void yyerror (Parser.Location loc, String msg) {}
+}*/

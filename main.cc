@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2019 Vincent Sallaberry
+ * Copyright (C) 2018-2019,2023 Vincent Sallaberry
  * vmultilangdemo <https://github.com/vsallaberry/vmultilangdemo>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,6 +26,7 @@
 # include <java/lang/Exception.h>
 # include <java/lang/NullPointerException.h>
 # include <java/lang/String.h>
+# include <java/util/List.h>
 # include <JMain.hh>
 # if BUILD_BISON3
 #  include "Parser.hh"
@@ -209,8 +210,8 @@ int main
     /* end of ADA calls */
 #   if ! BUILD_ADA_MAIN
     adafinal();
-#   endif // if ! BUILD_ADA_MAIN
-#  endif
+#   endif // ! #if ! BUILD_ADA_MAIN
+#  endif // ! #if BUILD_GNAT
 
     // Run Java Code if included in build
 #  if BUILD_JAVAOBJ
@@ -232,6 +233,8 @@ int main
     // Checking Java Exceptions mecanisms
     // gcj does not support mixing c++ and java exception, then c++ exceptions
     // cannot be caught in this file, and catch (...) is ignored.
+    // On linux (gcc-6.3), java exceptions cannot be caught if the main is in JAVA
+    // and if adainit() has been called (ok on macos gcc 6.5).
     try{
         fprintf(stdout, "[%s] throwing NullPointerException...\n", __FILE__);
         JMain::jmain(NULL); // throw new java::lang::NullPointerException();
@@ -254,14 +257,33 @@ int main
     // call java bison parser
 #   if BUILD_BISON3
     Parser * jparser = new Parser(NULL);
-    jparser->setDebugLevel(965);
-    ret = (int) jparser->getDebugLevel();
-    fprintf(stdout, "[%s] javaparser addr:%p debuglevel:%d\n", __FILE__, (void*)jparser, ret);
-    if (ret == 965) nok++; else nerrors++;
     try {
-        //jparser->parse();
+        const char * str[] = { "(2+2)+4+1+90*0.1/    /3", "1+2   +  WhatIsIt  +4", "(2+2)+4+1+90*0.1/3" };
+        const char * exp[] = { NULL,                      NULL,                    "12.0" };
+        for (size_t i = 0; i < sizeof(str) / sizeof(*str); ++i) {
+            fprintf(stdout, "%-30s <---- Java Parser.parse... (expecting %s)\n",
+                    str[i], exp[i]==NULL?"error":exp[i]); fflush(stdout);
+
+            java::util::List * result = jparser->parse(JvNewStringUTF(str[i]));
+
+            if (result != NULL)
+                JMain::print(result);
+            if (result == NULL) {
+                if (exp[i] != NULL) ++nerrors; else ++nok;
+            } else if (exp[i] == NULL || result->size() != 1) {
+                ++nerrors;
+            } else {
+                char buf[1024]; memset(buf, 0, sizeof(buf));
+                ::java::lang::String * jstr = result->get(0)->toString();
+                JvGetStringUTFRegion(jstr, 0, jstr->length() >= sizeof(buf) ? sizeof(buf)-1 : jstr->length(), buf);
+                if (strcmp(buf, exp[i]) != 0)
+                    ++nerrors;
+                else
+                    ++nok;
+            }
+        }
     } catch (java::lang::Exception * e) {
-        fprintf(stdout, "[%s] java exception\n", __FILE__);
+        fprintf(stdout, "[%s] Parser: java exception\n", __FILE__);
         nerrors++;
     }
 #   endif // if BUILD_BISON3
